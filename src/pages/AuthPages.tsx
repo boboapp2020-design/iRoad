@@ -88,7 +88,10 @@ export function LoginPage() {
           <Link to="/forgot" className="text-sm font-semibold text-brand-700">{t('auth.forgot')}</Link>
         </div>
       </form>
-      <div className="mt-auto pt-8"><RoadArt /></div>
+      <div className="mt-auto pt-8">
+        <RoadArt />
+        <div className="pb-2 text-center text-xs text-slate-400">build {__APP_BUILD__}</div>
+      </div>
     </div>
   );
 }

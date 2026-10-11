@@ -7,8 +7,12 @@ import { VitePWA } from 'vite-plugin-pwa';
 // GitHub Pages serves the app under /<repo>/ — set VITE_BASE=/iRoad/ there.
 const base = process.env.VITE_BASE || '/';
 
+// Shown on the login screen so testers can tell which build is live.
+const buildId = (process.env.GITHUB_SHA || 'local').slice(0, 7);
+
 export default defineConfig({
   base,
+  define: { __APP_BUILD__: JSON.stringify(buildId) },
   resolve: {
     alias: {
       '@verification': fileURLToPath(new URL('./shared/verification/index.ts', import.meta.url)),
