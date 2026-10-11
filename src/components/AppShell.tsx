@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { useI18n } from '@/lib/i18n';
+import { DemoBanner } from '@/demo/DemoBanner';
 
 export function AppShell() {
   const { user, signOut } = useAuth();
@@ -10,6 +11,7 @@ export function AppShell() {
     `flex min-h-14 flex-1 flex-col items-center justify-center text-xs font-semibold ${isActive ? 'text-brand-700' : 'text-slate-500'}`;
   return (
     <div className="mx-auto flex min-h-full max-w-3xl flex-col">
+      <DemoBanner />
       <div className="flex items-center justify-between bg-brand-700 px-4 py-2 text-white safe-top no-print">
         <div className="min-w-0">
           <div className="truncate text-sm font-bold">{t('app.name')}</div>

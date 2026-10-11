@@ -11,6 +11,16 @@ PWA สำหรับบันทึกและตรวจสอบการ�
 > **Backend เวอร์ชันนี้ใช้ Google Sheets + Google Apps Script** (ชีต "Iroad") และเก็บรูปต้นฉบับในโฟลเดอร์ Google Drive ส่วนตัว
 > วางแผนย้ายไป Supabase ในเฟสถัดไป โดยออกแบบให้ย้ายได้โดยไม่ต้องแก้หน้าจอ (ดู [docs/LIMITATIONS.md](docs/LIMITATIONS.md#migrating-to-supabase-planned))
 
+## ทดลองใช้ (GitHub Pages)
+
+https://boboapp2020-design.github.io/iRoad/ จะถูก build และ deploy อัตโนมัติด้วย `.github/workflows/deploy-pages.yml`
+ต้องตั้งค่า **Settings → Pages → Source: GitHub Actions** หนึ่งครั้ง
+
+- ถ้ายังไม่ได้ตั้ง repository variable `VITE_APPS_SCRIPT_URL` แอปจะทำงานใน **โหมดทดลอง** คือรัน `Code.gs` ตัวจริงในเบราว์เซอร์
+  - ข้อมูลเก็บใน IndexedDB ของเครื่องนั้นเท่านั้น และมีแถบเตือนสีเหลืองตลอดเวลา
+  - บัญชีทดลอง: `admin@demo.local`, `inspector@demo.local`, `reviewer@demo.local` รหัสผ่าน `Demo123456`
+- เมื่อ deploy Apps Script แล้ว ให้ตั้ง **Settings → Secrets and variables → Actions → Variables → `VITE_APPS_SCRIPT_URL`** เป็น Web app URL แล้วรัน workflow ใหม่ แอปจะเปลี่ยนไปใช้ backend จริง
+
 ## ฟีเจอร์
 
 - เข้าสู่ระบบด้วยอีเมล/รหัสผ่าน, รีเซ็ตรหัสผ่านด้วยรหัสทางอีเมล, บังคับเปลี่ยนรหัสผ่านชั่วคราว, ล็อกบัญชีเมื่อใส่รหัสผิดหลายครั้ง

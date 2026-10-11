@@ -48,3 +48,18 @@ describe('CSV export', () => {
     expect(toCsv(['a', 'b'], [[1, null]])).toBe('a,b\r\n1,\r\n');
   });
 });
+
+describe('auth bootstrap', () => {
+  it('sends the stored token on the very first request after a page load', async () => {
+    const { vi: v } = await import('vitest');
+    v.resetModules();
+    localStorage.setItem('rr.session', JSON.stringify({ token: 't'.repeat(64), expires_at: new Date(Date.now() + 3600_000).toISOString(), user: { id: 'u' } }));
+    const client = await import('@/lib/api/client');
+    const seen: string[] = [];
+    client.setTransport(async (body) => { seen.push(JSON.parse(body).token); return JSON.stringify({ ok: true, data: {} }); });
+    await import('@/lib/auth'); // module load configures the token provider; no React render needed
+    await client.call('listJobs');
+    expect(seen[0]).toBe('t'.repeat(64));
+    localStorage.removeItem('rr.session');
+  });
+});

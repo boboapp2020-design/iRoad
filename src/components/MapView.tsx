@@ -20,8 +20,9 @@ export interface MapPoint {
 function FitBounds({ points }: { points: [number, number][] }) {
   const map = useMap();
   useEffect(() => {
-    if (points.length === 1) map.setView(points[0], 18);
-    else if (points.length > 1) map.fitBounds(L.latLngBounds(points), { padding: [40, 40], maxZoom: 19 });
+    // animate:false — an in-flight animation crashes Leaflet if the page unmounts the map.
+    if (points.length === 1) map.setView(points[0], 18, { animate: false });
+    else if (points.length > 1) map.fitBounds(L.latLngBounds(points), { padding: [40, 40], maxZoom: 19, animate: false });
   }, [map, points]);
   return null;
 }

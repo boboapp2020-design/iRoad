@@ -40,10 +40,16 @@ interface AuthValue {
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
-let memorySession: StoredSession | null = null;
+let memorySession: StoredSession | null = readSession();
+let onExpired: () => void = () => {};
+
+// Configured at module load (not in an effect): child components' effects run
+// before the provider's, so the first API calls after a page load must already
+// carry the stored token.
+configureAuth(() => memorySession?.token ?? null, () => onExpired());
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<StoredSession | null>(() => (memorySession = readSession()));
+  const [session, setSession] = useState<StoredSession | null>(() => memorySession);
   const [ready, setReady] = useState(false);
 
   const clear = useCallback(() => {
@@ -52,9 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
   }, []);
 
-  useEffect(() => {
-    configureAuth(() => memorySession?.token ?? null, clear);
-  }, [clear]);
+  onExpired = clear;
 
   const refresh = useCallback(async () => {
     if (!memorySession) return;

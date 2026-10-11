@@ -11,6 +11,7 @@ import { errorMessage, fmtBytes, fmtCoord, fmtDateTime, fmtNum, reasonText } fro
 import { arrayBufferToBase64, sha256Hex, uuid } from '@/lib/hash';
 import { useI18n } from '@/lib/i18n';
 import { useAsync } from '@/lib/useAsync';
+import { DemoBanner } from '@/demo/DemoBanner';
 import { evaluateGate, measurementFrom, toPayload, type GateCheck } from './captureGate';
 import { createSubmitter, type SubmissionState } from './submitter';
 import { useCamera, type CaptureMethod } from './useCamera';
@@ -285,6 +286,7 @@ export function CapturePage() {
   const blocked = gate.checks.find((c) => c.state !== 'ok');
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-black text-white">
+      <DemoBanner />
       <div className="flex items-center gap-2 px-2 py-2 safe-top">
         <button aria-label="back" className="flex h-11 w-11 items-center justify-center rounded-full text-2xl" onClick={leave}>‹</button>
         <h1 className="flex-1 text-center text-lg font-bold">{title}</h1>

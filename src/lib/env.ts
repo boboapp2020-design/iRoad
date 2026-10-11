@@ -10,6 +10,9 @@ export const env = {
   requestTimeoutMs: Number(import.meta.env.VITE_API_TIMEOUT_MS) || 60_000,
 };
 
+/** No backend configured → the in-browser demo backend is used (data stays on this device). */
+export const isDemo = !env.apiUrl;
+
 export function tileUrl(): string {
   return env.mapTileUrl.replace('{apiKey}', encodeURIComponent(env.mapApiKey));
 }

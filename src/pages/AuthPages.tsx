@@ -3,7 +3,8 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Alert, Button, Card, Field, Input, PageHeader } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { env } from '@/lib/env';
+import { DemoAccounts, DemoBanner } from '@/demo/DemoBanner';
+import { env, isDemo } from '@/lib/env';
 import { errorMessage } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 
@@ -60,6 +61,7 @@ export function LoginPage() {
 
   return (
     <div className="mx-auto flex min-h-full max-w-md flex-col bg-white">
+      <DemoBanner />
       <div className="flex justify-end p-3">
         <button className="text-sm font-semibold text-brand-700" onClick={() => setLocale(locale === 'th' ? 'en' : 'th')}>{t('common.language')}</button>
       </div>
@@ -69,7 +71,8 @@ export function LoginPage() {
         <p className="text-slate-600">{t('app.tagline')}</p>
       </div>
       <form onSubmit={onSubmit} className="space-y-4 px-6 pt-8" noValidate>
-        {!env.apiUrl && <Alert kind="warning">{t('common.notConfigured')}</Alert>}
+        {!env.apiUrl && !isDemo && <Alert kind="warning">{t('common.notConfigured')}</Alert>}
+        <DemoAccounts onPick={(e, p) => { setEmail(e); setPassword(p); }} />
         {notice && <Alert kind="success">{notice}</Alert>}
         <Field label={t('auth.email')}>
           <Input type="email" autoComplete="username" inputMode="email" required value={email} onChange={(e) => setEmail(e.target.value)} />

@@ -9,7 +9,9 @@ npm test                        # unit + backend tests (also rebuilds apps-scrip
 npm run build                   # → dist/
 ```
 
-Host `dist/` on any static host with **HTTPS**, and add an SPA fallback that rewrites unknown paths to `/index.html`:
+**GitHub Pages:** the workflow `.github/workflows/deploy-pages.yml` builds with `VITE_BASE=/<repo>/`, copies `index.html` to `404.html` as the SPA fallback, and deploys. Set **Settings → Pages → Source = GitHub Actions**. Set the repository variable `VITE_APPS_SCRIPT_URL` to use the real backend; without it the build runs in DEMO mode (Code.gs in the browser, data in IndexedDB on that device only).
+
+Otherwise host `dist/` on any static host with **HTTPS**, and add an SPA fallback that rewrites unknown paths to `/index.html`:
 
 | Host | SPA fallback |
 |---|---|
