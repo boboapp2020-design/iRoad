@@ -18,7 +18,10 @@ export interface LatLng {
   longitude: number;
 }
 
-export function isValidCoordinate(p: Partial<LatLng> | null | undefined): p is LatLng {
+/** A possibly incomplete coordinate as received from a device or a record. */
+export type MaybeLatLng = { latitude?: number | null; longitude?: number | null } | null | undefined;
+
+export function isValidCoordinate(p: MaybeLatLng): p is LatLng {
   return !!p && isValidLatitude(p.latitude) && isValidLongitude(p.longitude);
 }
 
@@ -34,8 +37,8 @@ const toRad = (deg: number) => (deg * Math.PI) / 180;
  * either coordinate is missing or invalid.
  */
 export function haversineDistanceM(
-  a: Partial<LatLng> | null | undefined,
-  b: Partial<LatLng> | null | undefined,
+  a: MaybeLatLng,
+  b: MaybeLatLng,
 ): number | null {
   if (!isValidCoordinate(a) || !isValidCoordinate(b)) return null;
   const dLat = toRad(b.latitude - a.latitude);
@@ -47,7 +50,7 @@ export function haversineDistanceM(
 }
 
 /** Initial bearing from a to b in degrees [0, 360), or null if invalid / identical. */
-export function bearingDeg(a: Partial<LatLng>, b: Partial<LatLng>): number | null {
+export function bearingDeg(a: MaybeLatLng, b: MaybeLatLng): number | null {
   if (!isValidCoordinate(a) || !isValidCoordinate(b)) return null;
   if (a.latitude === b.latitude && a.longitude === b.longitude) return null;
   const φ1 = toRad(a.latitude);

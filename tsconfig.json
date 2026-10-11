@@ -19,8 +19,8 @@
     "types": ["vite/client", "vite-plugin-pwa/client", "node"],
     "paths": {
       "@/*": ["./src/*"],
-      "@verification": ["./supabase/functions/_shared/verification/index.ts"]
+      "@verification": ["./shared/verification/index.ts"]
     }
   },
-  "include": ["src", "tests", "supabase/functions/_shared", "vite.config.ts", "vitest.config.ts", "playwright.config.ts", "e2e"]
+  "include": ["src", "tests", "shared", "vite.config.ts", "vitest.config.ts", "playwright.config.ts", "e2e"]
 }

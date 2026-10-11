@@ -1,7 +1,8 @@
 /**
  * Verification rules. The SAME module is imported by the browser (live
- * guidance) and by the Supabase Edge Function (authoritative result), so the
+ * guidance) and by the server backend (authoritative result), so the
  * client can never be configured with looser thresholds than the server.
+ * (Bundled into the Apps Script backend by scripts/build-apps-script.mjs.)
  *
  * Changing any value requires a NEW rules version. Every stored verification
  * records `rulesVersion` and a copy of the thresholds it was evaluated with.

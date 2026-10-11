@@ -7,7 +7,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
   resolve: {
     alias: {
-      '@verification': fileURLToPath(new URL('./supabase/functions/_shared/verification/index.ts', import.meta.url)),
+      '@verification': fileURLToPath(new URL('./shared/verification/index.ts', import.meta.url)),
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
