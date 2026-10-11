@@ -11,3 +11,4 @@ test-results
 .tmp
 supabase/.temp
 supabase/.branches
+!apps-script/dist/
