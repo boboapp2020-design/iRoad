@@ -36,14 +36,13 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Only the static app shell is precached. Supabase API, Auth, Storage
-        // (signed evidence URLs) and Edge Functions are NEVER cached.
+        // Only the static app shell is precached. API calls (Apps Script) and
+        // evidence images (fetched through the API) are NEVER cached by the SW.
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/auth\//, /^\/rest\//, /^\/storage\//, /^\/functions\//],
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => /supabase\.(co|in)$/.test(url.hostname) || url.pathname.startsWith('/storage/v1/'),
+            urlPattern: ({ url }) => /(^|\.)script\.google(usercontent)?\.com$/.test(url.hostname),
             handler: 'NetworkOnly',
           },
         ],

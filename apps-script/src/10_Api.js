@@ -14,6 +14,7 @@ var AUTH_ACTIONS = {
   stats: actionStats,
   listJobs: actionListJobs,
   getJob: actionGetJob,
+  reportData: actionReportData,
   createJob: actionCreateJob,
   updateJob: actionUpdateJob,
   markRepairDone: actionMarkRepairDone,

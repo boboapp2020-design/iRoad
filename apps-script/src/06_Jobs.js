@@ -300,3 +300,32 @@ function actionStats(p, ctx) {
   });
   return { counts: counts };
 }
+
+/** Everything a report needs in one call: jobs + current evidence + verification + latest review. */
+function actionReportData(p, ctx) {
+  var names = userNameMap();
+  var listed = actionListJobs(p, ctx).jobs;
+  var only = p.job_id ? String(p.job_id) : '';
+  var photos = {};
+  Db.all('repair_photos').forEach(function (ph) { photos[ph.id] = ph; });
+  var verifications = {};
+  Db.all('verification_results').forEach(function (v) { verifications[v.id] = v; });
+  var reviewsByJob = {};
+  Db.all('repair_reviews').forEach(function (r) { reviewsByJob[r.repair_job_id] = r; }); // rows are chronological: last wins
+  return {
+    generated_at: nowIso(),
+    rows: listed.filter(function (j) { return !only || j.id === only; }).map(function (j) {
+      var before = photos[j.current_before_photo_id];
+      var after = photos[j.current_after_photo_id];
+      var v = verifications[j.current_verification_id];
+      var r = reviewsByJob[j.id];
+      return {
+        job: j,
+        before: before ? publicPhoto(before, names) : null,
+        after: after ? publicPhoto(after, names) : null,
+        verification: v ? publicVerification(v, names) : null,
+        review: r ? publicReview(r, names) : null
+      };
+    })
+  };
+}

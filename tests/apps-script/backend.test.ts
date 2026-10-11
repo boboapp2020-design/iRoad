@@ -363,3 +363,19 @@ describe('evidence access, corrections and audit', () => {
     expect(res.error.code).toBe('BAD_REQUEST');
   });
 });
+
+describe('reports', () => {
+  it('returns current evidence, verification and review for visible jobs only', () => {
+    const w = setupWorld();
+    const { job } = jobReadyForAfter(w);
+    w.b.call('submitCapture', afterPayload(job.id), w.inspector);
+    w.b.call('reviewJob', { id: job.id, decision: 'APPROVE', reason: 'เรียบร้อยดี' }, w.reviewer);
+    createJob(w, w.inspector2);
+    const r = w.b.call('reportData', {}, w.inspector).data;
+    expect(r.rows).toHaveLength(1);
+    expect(r.rows[0]).toMatchObject({ job: { status: 'APPROVED' }, verification: { overall_status: 'PASS' }, review: { decision: 'APPROVED' } });
+    expect(r.rows[0].before.sha256_hash).toMatch(/^[0-9a-f]{64}$/);
+    expect(w.b.call('reportData', {}, w.admin).data.rows).toHaveLength(2);
+    expect(w.b.call('reportData', { job_id: job.id }, w.admin).data.rows).toHaveLength(1);
+  });
+});
