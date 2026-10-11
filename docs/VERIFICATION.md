@@ -1,0 +1,69 @@
+# Verification rules (`rr-verify-v1`)
+
+Source: `shared/verification/`. The browser (live gate) and the server (authoritative result) run the **same** code.
+
+| Rule | Threshold | Comparison |
+|---|---|---|
+| Reported GPS horizontal accuracy (Before and After) | 3 m | `≤` |
+| Distance Before ↔ After (Haversine, R = 6 371 008.8 m) | 3 m | `≤` |
+| Circular heading difference | 10° | `≤` |
+| GPS fix age relative to capture time | 10 s | `≤` (1 s tolerance for a fix stamped slightly after the capture) |
+| Heading sample age relative to capture time | 10 s | `≤` |
+| Heading uncertainty (platform accuracy or circular spread of 1 s of samples) | 15° | `≤`; above this the heading is unreliable |
+
+Values are compared **unrounded**. The UI rounds only for display.
+
+## Validation sequence
+
+1. Both evidence records exist.
+2. Capture timestamp present; coordinates present and in range; accuracy finite and > 0.
+3. Freshness of the GPS fix and of the heading sample.
+4. Before accuracy, then 5. After accuracy.
+6. Distance, computed only from fresh, valid coordinates. 7. Distance threshold.
+8. Both headings valid, with a known source, fresh and reliable. 9. Circular difference:
+   `abs(((after − before + 180) mod 360) − 180)` using a non-negative modulo
+   (359° vs 1° → 2°, 90° vs 100° → 10°, 90° vs 101° → 11°).
+10. Status: see below. 11. Saved with every reason, the rules version and a threshold snapshot.
+
+## Status
+
+| Status | Meaning |
+|---|---|
+| **PASS** | Every mandatory check is `true` and there is no FAIL or INSUFFICIENT reason. |
+| **FAIL** | At least one *valid* measurement violates a threshold. |
+| **INSUFFICIENT_DATA** | Nothing failed definitively, but some required value is missing, invalid, stale or unreliable. |
+| **PENDING** | UI state: no authoritative server result yet (for example while uploading, or offline). Never stored as a verification. |
+
+**Design decision: both missing and out of tolerance.** If, for example, the heading is missing *and* the distance
+is 50 m, the result is **FAIL**. The definitive violation is reported first, and all reasons, including the
+INSUFFICIENT ones, are stored. Neither status can be approved. Missing values are never treated as 0.
+
+A different heading source between Before and After (for example Android vs iOS) adds a **WARNING** only.
+
+## Heading: what is actually measured
+
+- **Android Chrome**: `deviceorientationabsolute` gives the device rotation relative to the Earth frame. The app
+  computes the compass direction of the device's **back axis (−Z)**, i.e. where the rear camera faces:
+  `v = −R·ẑ`, `heading = atan2(vx, vy)`. This direction does not change with screen orientation, so portrait and
+  landscape give the same value. If the camera points within about 15° of straight up or down, the horizontal
+  component is too small and the heading is reported as unavailable.
+- **iOS Safari**: needs `DeviceOrientationEvent.requestPermission()` from a tap. Uses `webkitCompassHeading`
+  (degrees from magnetic north) and `webkitCompassAccuracy`. Apple documents this value for the device's
+  orientation, not explicitly for the rear-camera axis. **Verify on real devices** (see DEVICE_TESTING.md).
+- A relative `deviceorientation` (absolute = false) is treated as **unavailable**. An unsupported device cannot
+  capture, so it cannot bypass the requirement.
+- The heading is an approximation of the camera's optical axis, not a measurement of it. Magnetic interference
+  (vehicles, rebar, steel poles) can shift it by tens of degrees. The app shows a figure-8 calibration tip.
+
+## GPS: what "accuracy ≤ 3 m" means
+
+`coords.accuracy` is the device's **estimate** of horizontal accuracy (Android reports a 68% confidence radius).
+The true position may lie outside that radius. Many phones rarely report below 3–4 m, especially near
+buildings or trees. The threshold is **not** relaxed automatically. If it is often unattainable, change it with a
+new rules version (an explicit, audited code change).
+
+## Changing rules
+
+1. Add `RULES_V2` in `rules.ts` and point `CURRENT_RULES` to it. Never edit `RULES_V1`.
+2. Update the tests, rebuild `Code.gs` (`npm run build:gas`), redeploy Apps Script and the frontend together.
+3. Old verifications keep their `rules_version` and `thresholds` snapshot.

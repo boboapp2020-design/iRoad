@@ -6,7 +6,6 @@
 function setup() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var props = PropertiesService.getScriptProperties();
-  props.setProperty('SPREADSHEET_ID', ss.getId());
 
   Object.keys(SCHEMA).forEach(function (name) {
     var cols = SCHEMA[name].columns;

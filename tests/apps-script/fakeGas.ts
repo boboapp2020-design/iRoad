@@ -173,7 +173,7 @@ export function createBackend(): Backend {
     PropertiesService: { getScriptProperties: () => ({ getProperty: (k: string) => props.get(k) ?? null, setProperty: (k: string, v: string) => props.set(k, v) }) },
     CacheService: { getScriptCache: () => ({ get: (k: string) => cache.get(k) ?? null, put: (k: string, v: string) => cache.set(k, v) }) },
     LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} }) },
-    SpreadsheetApp: { getActiveSpreadsheet: () => ss, openById: () => ss },
+    SpreadsheetApp: { getActiveSpreadsheet: () => ss },
     DriveApp: drive,
     ContentService: { MimeType: { JSON: 'JSON' }, createTextOutput: (s: string) => ({ setMimeType() { return this; }, getContent: () => s }) },
     MailApp: { sendEmail: (m: { to: string; subject: string; body: string }) => outbox.push(m) },

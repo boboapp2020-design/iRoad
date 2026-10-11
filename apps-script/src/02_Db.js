@@ -9,9 +9,10 @@ var Db = (function () {
 
   function spreadsheet() {
     if (ss_) return ss_;
-    var id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
-    ss_ = id ? SpreadsheetApp.openById(id) : SpreadsheetApp.getActiveSpreadsheet();
-    if (!ss_) fail('NOT_CONFIGURED', 'Spreadsheet not found. Run setup() first.');
+    // Container-bound script: the bound spreadsheet is available in doPost too,
+    // which lets the manifest request only the spreadsheets.currentonly scope.
+    ss_ = SpreadsheetApp.getActiveSpreadsheet();
+    if (!ss_) fail('NOT_CONFIGURED', 'This script must be bound to the spreadsheet (Extensions > Apps Script).');
     return ss_;
   }
 
