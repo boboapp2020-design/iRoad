@@ -326,6 +326,7 @@ export function CapturePage() {
           <div>Lat: {geo.fix ? geo.fix.latitude.toFixed(6) : '—'}</div>
           <div>Lng: {geo.fix ? geo.fix.longitude.toFixed(6) : '—'}</div>
           <div>Accuracy: {geo.fix ? `${fmtNum(geo.fix.accuracy)} m` : '—'}</div>
+          <div>GPS age: {geo.fix ? `${fmtNum(Math.max(0, now - geo.fix.timestamp) / 1000)} s` : '—'}</div>
           <div>Heading: {heading.reading ? `${Math.round(heading.reading.headingDeg)}° ±${fmtNum(heading.reading.uncertaintyDeg)}` : '—'}</div>
           {captureType === 'AFTER' && before && <div>{t('capture.target')}: {fmtNum(before.heading_degrees, 0)}°</div>}
         </div>

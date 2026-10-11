@@ -194,3 +194,34 @@ test('unsupported heading sensor blocks capture', async ({ browser }) => {
   await expect(page.getByText('ไม่มีเซ็นเซอร์ทิศทาง ไม่สามารถดำเนินการตรวจสอบได้').first()).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('button', { name: 'ถ่ายภาพ' })).toBeDisabled();
 });
+
+test('standing still (watchPosition goes quiet) can still capture after 12 s', async ({ browser }) => {
+  const b = createBackend();
+  const accounts = seed(b);
+  const context = await browser.newContext({ permissions: ['camera'] });
+  const page = await context.newPage();
+  await wireBackend(page, b);
+  // Model a phone at rest: watchPosition reports once and then stays silent;
+  // getCurrentPosition({ maximumAge: 0 }) takes a fresh measurement.
+  await page.addInitScript(([lat, lng]) => {
+    const fix = () => ({ coords: { latitude: lat, longitude: lng, accuracy: 2, altitude: null, altitudeAccuracy: null, heading: null, speed: null }, timestamp: Date.now() });
+    Object.defineProperty(navigator, 'geolocation', {
+      value: {
+        watchPosition: (ok: (p: unknown) => void) => { setTimeout(() => ok(fix()), 200); return 1; },
+        clearWatch: () => {},
+        getCurrentPosition: (ok: (p: unknown) => void) => setTimeout(() => ok(fix()), 300),
+      },
+    });
+    setInterval(() => window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { alpha: 270, beta: 90, gamma: 0, absolute: true })), 100);
+  }, [ORIGIN.latitude, ORIGIN.longitude]);
+  await login(page, accounts.inspector, 'Passw0rd1234');
+  await page.getByRole('link', { name: /สร้างรายการใหม่/ }).first().click();
+  await page.getByLabel(/ชื่อถนน/).fill('ถ.นิ่ง');
+  await page.getByRole('button', { name: 'ถัดไป: ถ่ายภาพก่อนซ่อม' }).click();
+  await page.getByRole('button', { name: 'อนุญาตกล้อง ตำแหน่ง และเข็มทิศ' }).click();
+  await page.waitForTimeout(12_000);
+  await expect(page.getByRole('button', { name: 'ถ่ายภาพ' })).toBeEnabled({ timeout: 5_000 });
+  await page.getByRole('button', { name: 'ถ่ายภาพ' }).click();
+  await page.getByRole('button', { name: 'บันทึก' }).click();
+  await expect(page.getByText('บันทึกภาพก่อนซ่อมเรียบร้อย')).toBeVisible({ timeout: 15_000 });
+});
