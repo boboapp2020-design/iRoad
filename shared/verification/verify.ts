@@ -24,6 +24,7 @@ export type ReasonCode =
   | 'ACCURACY_MISSING'
   | 'ACCURACY_INVALID'
   | 'ACCURACY_EXCEEDED'
+  | 'REFERENCE_ACCURACY_LOW'
   | 'DISTANCE_NOT_COMPUTABLE'
   | 'DISTANCE_EXCEEDED'
   | 'HEADING_MISSING'
@@ -161,22 +162,34 @@ export function evaluateCapture(
   const locationUsable = coordsValid && locationFresh;
 
   // --- GPS accuracy --------------------------------------------------------
+  // The After capture always uses maxGpsAccuracyM. The Before capture uses
+  // maxBeforeGpsAccuracyM; when that is null it is a recorded reference only.
+  const accuracyLimit = capture === 'BEFORE' ? rules.maxBeforeGpsAccuracyM : rules.maxGpsAccuracyM;
   let accuracyPass: boolean | null = null;
   if (m.accuracyM == null) {
     reasons.push(reason('ACCURACY_MISSING', 'INSUFFICIENT_DATA', `${capture} GPS accuracy is missing.`, { capture }));
   } else if (!isValidAccuracy(m.accuracyM)) {
     reasons.push(reason('ACCURACY_INVALID', 'INSUFFICIENT_DATA', `${capture} GPS accuracy value is invalid.`, { capture, value: m.accuracyM as number }));
-  } else if (m.accuracyM > rules.maxGpsAccuracyM) {
+  } else if (accuracyLimit !== null && m.accuracyM > accuracyLimit) {
     // A valid measurement worse than the limit is a definitive failure even if other data is missing.
     accuracyPass = false;
     reasons.push(
-      reason('ACCURACY_EXCEEDED', 'FAIL', `${capture} GPS accuracy ${m.accuracyM} m exceeds ${rules.maxGpsAccuracyM} m.`, {
+      reason('ACCURACY_EXCEEDED', 'FAIL', `${capture} GPS accuracy ${m.accuracyM} m exceeds ${accuracyLimit} m.`, {
         capture,
         value: m.accuracyM,
-        threshold: rules.maxGpsAccuracyM,
+        threshold: accuracyLimit,
       }),
     );
   } else {
+    if (accuracyLimit === null && m.accuracyM > rules.maxGpsAccuracyM) {
+      reasons.push(
+        reason('REFERENCE_ACCURACY_LOW', 'WARNING', `${capture} reference position is only accurate to ${m.accuracyM} m.`, {
+          capture,
+          value: m.accuracyM,
+          threshold: rules.maxGpsAccuracyM,
+        }),
+      );
+    }
     accuracyPass = locationUsable ? true : null;
   }
 

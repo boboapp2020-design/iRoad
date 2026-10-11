@@ -1,10 +1,25 @@
-# Verification rules (`rr-verify-v1`)
+# Verification rules (current: `rr-verify-v2`)
+
+> **v2 (current), decided by the project owner:** the **Before photo can be taken anywhere**. Its position, GPS
+> accuracy and heading are recorded as the *reference point*. Accuracy is **not** a pass/fail criterion for Before.
+> When it is worse than 3 m, a `REFERENCE_ACCURACY_LOW` **warning** is stored and shown. The Before photo still needs
+> coordinates, an accuracy value, a reliable heading and fresh readings, because the After photo is matched
+> against them. The **After photo is unchanged**: accuracy ≤ 3 m, ≤ 3 m from the Before position, heading
+> difference ≤ 10°.
+>
+> **v1** (kept so older records stay interpretable) also required Before accuracy ≤ 3 m. Each verification stores its
+> `rules_version`, plus a threshold snapshot that includes `max_before_gps_accuracy_m` (null = reference only).
+>
+> **Trade-off:** with an imprecise Before reference, "≤ 3 m from the Before position" is measured against a point that
+> may itself be off by the Before accuracy. A PASS then gives weaker evidence of the same location. The warning stays
+> visible on the result.
 
 Source: `shared/verification/`. The browser (live gate) and the server (authoritative result) run the **same** code.
 
 | Rule | Threshold | Comparison |
 |---|---|---|
-| Reported GPS horizontal accuracy (Before and After) | 3 m | `≤` |
+| Reported GPS horizontal accuracy — **After** | 3 m | `≤` |
+| Reported GPS horizontal accuracy — **Before** | v2: not required (warning above 3 m); v1: 3 m | — |
 | Distance Before ↔ After (Haversine, R = 6 371 008.8 m) | 3 m | `≤` |
 | Circular heading difference | 10° | `≤` |
 | GPS fix age relative to capture time | 10 s | `≤` (1 s tolerance for a fix stamped slightly after the capture) |
@@ -18,7 +33,7 @@ Values are compared **unrounded**. The UI rounds only for display.
 1. Both evidence records exist.
 2. Capture timestamp present; coordinates present and in range; accuracy finite and > 0.
 3. Freshness of the GPS fix and of the heading sample.
-4. Before accuracy, then 5. After accuracy.
+4. Before accuracy (v2: recorded, warning only), then 5. After accuracy (≤ 3 m).
 6. Distance, computed only from fresh, valid coordinates. 7. Distance threshold.
 8. Both headings valid, with a known source, fresh and reliable. 9. Circular difference:
    `abs(((after − before + 180) mod 360) − 180)` using a non-negative modulo

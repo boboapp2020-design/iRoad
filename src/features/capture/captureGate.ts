@@ -93,11 +93,16 @@ export function evaluateGate(input: GateInput): GateResult {
   const measurement = measurementFrom(fix, heading, now);
   const checks: GateCheck[] = [];
 
-  // GPS accuracy + freshness
+  // GPS accuracy + freshness. Before may be taken anywhere when the rules say so
+  // (maxBeforeGpsAccuracyM === null): accuracy is then recorded, not gated.
+  const gpsLimit = mode === 'BEFORE' ? rules.maxBeforeGpsAccuracyM : rules.maxGpsAccuracyM;
   if (!fix) checks.push({ key: 'gps', state: 'waiting', message: 'capture.waitingGps' });
   else if (now - fix.timestamp > rules.maxLocationAgeMs) checks.push({ key: 'gps', state: 'waiting', message: 'capture.gpsStale' });
-  else if (fix.accuracy > rules.maxGpsAccuracyM) checks.push({ key: 'gps', state: 'bad', message: 'capture.gpsBad', params: { v: r1(fix.accuracy), t: rules.maxGpsAccuracyM } });
-  else checks.push({ key: 'gps', state: 'ok', message: 'capture.gpsOk', params: { v: r1(fix.accuracy) } });
+  else if (gpsLimit !== null && fix.accuracy > gpsLimit) checks.push({ key: 'gps', state: 'bad', message: 'capture.gpsBad', params: { v: r1(fix.accuracy), t: gpsLimit } });
+  else if (gpsLimit === null) {
+    const weak = fix.accuracy > rules.maxGpsAccuracyM;
+    checks.push({ key: 'gps', state: 'ok', message: weak ? 'capture.gpsReferenceWeak' : 'capture.gpsReference', params: { v: r1(fix.accuracy) } });
+  } else checks.push({ key: 'gps', state: 'ok', message: 'capture.gpsOk', params: { v: r1(fix.accuracy) } });
 
   // Distance (After only)
   let distanceM: number | null = null;
@@ -142,4 +147,13 @@ export function evaluateGate(input: GateInput): GateResult {
   }
   ready = ready && checks.every((c) => c.state === 'ok');
   return { ready, checks, measurement, distanceM, headingDiffDeg };
+}
+
+/**
+ * Before-accuracy limit used by a stored verification: the v2+ snapshot stores
+ * max_before_gps_accuracy_m (null = reference only); v1 used max_gps_accuracy_m.
+ */
+export function beforeAccuracyLimit(thresholds: Record<string, number | null | undefined>): number | null {
+  if ('max_before_gps_accuracy_m' in thresholds) return thresholds.max_before_gps_accuracy_m ?? null;
+  return thresholds.max_gps_accuracy_m ?? 3;
 }

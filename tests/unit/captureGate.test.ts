@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RULES_V1 } from '@verification';
+import { RULES_V1, RULES_V2 } from '@verification';
 import { evaluateGate } from '@/features/capture/captureGate';
 import type { GeoFix } from '@/features/capture/useGeolocation';
 import type { HeadingReading } from '@/features/capture/useHeading';
@@ -65,5 +65,25 @@ describe('capture gate (After)', () => {
   });
   it('is not ready when the Before record lacks a heading', () => {
     expect(evaluateGate({ mode: 'AFTER', fix: fix(), heading: heading(), headingStatus: 'ok', now: NOW, rules: RULES_V1, before: { ...before, heading_degrees: null } }).ready).toBe(false);
+  });
+});
+
+describe('capture gate with rules v2', () => {
+  it('lets the Before photo be taken with poor accuracy (reference only)', () => {
+    const g = evaluateGate({ mode: 'BEFORE', fix: fix({ accuracy: 9.3 }), heading: heading(), headingStatus: 'ok', now: NOW, rules: RULES_V2 });
+    expect(g.ready).toBe(true);
+    expect(g.checks[0]).toMatchObject({ state: 'ok', message: 'capture.gpsReferenceWeak', params: { v: '9.3' } });
+  });
+  it('still waits for a GPS fix and a heading for the Before photo', () => {
+    expect(evaluateGate({ mode: 'BEFORE', fix: null, heading: heading(), headingStatus: 'ok', now: NOW, rules: RULES_V2 }).ready).toBe(false);
+    expect(evaluateGate({ mode: 'BEFORE', fix: fix(), heading: null, headingStatus: 'unavailable', now: NOW, rules: RULES_V2 }).ready).toBe(false);
+  });
+  it('keeps the 3 m accuracy requirement for the After photo', () => {
+    const g = evaluateGate({ mode: 'AFTER', fix: fix({ accuracy: 4 }), heading: heading(), headingStatus: 'ok', now: NOW, rules: RULES_V2, before: { ...before, gps_accuracy_m: 9 } });
+    expect(g.ready).toBe(false);
+    expect(g.checks[0]).toMatchObject({ state: 'bad', message: 'capture.gpsBad' });
+  });
+  it('After can be ready against a weak Before reference', () => {
+    expect(evaluateGate({ mode: 'AFTER', fix: fix(), heading: heading(), headingStatus: 'ok', now: NOW, rules: RULES_V2, before: { ...before, gps_accuracy_m: 9 } }).ready).toBe(true);
   });
 });

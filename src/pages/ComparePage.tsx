@@ -6,6 +6,7 @@ import { api, type Photo } from '@/lib/api';
 import { errorMessage, fmtCoord, fmtDateTime, fmtNum, reasonText } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { useAsync } from '@/lib/useAsync';
+import { beforeAccuracyLimit } from '@/features/capture/captureGate';
 
 function Meta({ p }: { p: Photo }) {
   const { t, intlLocale } = useI18n();
@@ -32,11 +33,12 @@ export function ComparePage() {
   const after = data.photos.find((p) => p.id === (v?.after_photo_id ?? data.job.current_after_photo_id));
   const status = v?.overall_status ?? 'PENDING';
   const acc = v?.thresholds.max_gps_accuracy_m ?? 3;
-  const rows: [string, string, boolean | null][] = v
+  const beforeLimit = v ? beforeAccuracyLimit(v.thresholds) : null;
+  const rows: [string, string, boolean | null | undefined][] = v
     ? [
         [t('verification.distance'), v.measured_distance_m == null ? '—' : t('common.meters', { v: fmtNum(v.measured_distance_m) }), v.distance_pass],
         [t('verification.headingDiff'), v.heading_difference_degrees == null ? '—' : `${fmtNum(v.heading_difference_degrees)}°`, v.heading_pass],
-        [t('verification.gpsBefore'), t('common.meters', { v: fmtNum(v.before_accuracy_m) }), v.before_accuracy_m == null ? null : v.before_accuracy_m <= acc],
+        [t('verification.gpsBefore'), t('common.meters', { v: fmtNum(v.before_accuracy_m) }), beforeLimit === null ? undefined : v.before_accuracy_m == null ? null : v.before_accuracy_m <= beforeLimit],
         [t('verification.gpsAfter'), t('common.meters', { v: fmtNum(v.after_accuracy_m) }), v.after_accuracy_m == null ? null : v.after_accuracy_m <= acc],
       ]
     : [];
@@ -64,7 +66,7 @@ export function ComparePage() {
           {rows.map(([label, value, pass]) => (
             <div key={label} className="flex items-center justify-between border-b border-slate-100 py-2 text-sm">
               <span className="text-slate-600">{label}</span>
-              <span className="flex items-center gap-2 font-semibold">{value}<CheckIcon state={pass === null ? null : pass ? 'ok' : 'bad'} /></span>
+              <span className="flex items-center gap-2 font-semibold">{value}{pass !== undefined && <CheckIcon state={pass === null ? null : pass ? 'ok' : 'bad'} />}</span>
             </div>
           ))}
           {v && v.failure_reasons.length > 0 && <ul className="mt-2 list-inside list-disc text-sm">{v.failure_reasons.map((r, i) => <li key={i}>{reasonText(t, r)}</li>)}</ul>}

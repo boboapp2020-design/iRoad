@@ -98,7 +98,7 @@ export interface Verification {
   overall_status: VerificationStatus;
   failure_reasons: VerificationReason[];
   rules_version: string;
-  thresholds: Record<string, number>;
+  thresholds: Record<string, number | null>;
   verified_at: string;
   verified_by: string | null;
   record_intact: boolean;

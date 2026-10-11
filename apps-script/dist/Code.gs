@@ -27,6 +27,7 @@ var RRVerify = (() => {
     CURRENT_RULES: () => CURRENT_RULES,
     EARTH_RADIUS_M: () => EARTH_RADIUS_M,
     RULES_V1: () => RULES_V1,
+    RULES_V2: () => RULES_V2,
     SUBMISSION_LIMITS: () => SUBMISSION_LIMITS,
     bearingDeg: () => bearingDeg,
     cameraHeadingFromOrientation: () => cameraHeadingFromOrientation,
@@ -52,6 +53,7 @@ var RRVerify = (() => {
   var RULES_V1 = Object.freeze({
     version: "rr-verify-v1",
     maxGpsAccuracyM: 3,
+    maxBeforeGpsAccuracyM: 3,
     maxDistanceM: 3,
     maxHeadingDifferenceDeg: 10,
     maxLocationAgeMs: 1e4,
@@ -59,7 +61,12 @@ var RRVerify = (() => {
     maxHeadingUncertaintyDeg: 15,
     futureToleranceMs: 1e3
   });
-  var CURRENT_RULES = RULES_V1;
+  var RULES_V2 = Object.freeze({
+    ...RULES_V1,
+    version: "rr-verify-v2",
+    maxBeforeGpsAccuracyM: null
+  });
+  var CURRENT_RULES = RULES_V2;
   var SUBMISSION_LIMITS = Object.freeze({
     /** Captures older than this when they reach the server are rejected (ms). */
     maxSubmissionDelayMs: 15 * 6e4,
@@ -71,6 +78,7 @@ var RRVerify = (() => {
   function thresholdsSnapshot(rules) {
     return {
       max_gps_accuracy_m: rules.maxGpsAccuracyM,
+      max_before_gps_accuracy_m: rules.maxBeforeGpsAccuracyM,
       max_distance_m: rules.maxDistanceM,
       max_heading_difference_deg: rules.maxHeadingDifferenceDeg,
       max_location_age_ms: rules.maxLocationAgeMs,
@@ -218,21 +226,31 @@ var RRVerify = (() => {
       }
     }
     const locationUsable = coordsValid && locationFresh;
+    const accuracyLimit = capture === "BEFORE" ? rules.maxBeforeGpsAccuracyM : rules.maxGpsAccuracyM;
     let accuracyPass = null;
     if (m.accuracyM == null) {
       reasons.push(reason("ACCURACY_MISSING", "INSUFFICIENT_DATA", `${capture} GPS accuracy is missing.`, { capture }));
     } else if (!isValidAccuracy(m.accuracyM)) {
       reasons.push(reason("ACCURACY_INVALID", "INSUFFICIENT_DATA", `${capture} GPS accuracy value is invalid.`, { capture, value: m.accuracyM }));
-    } else if (m.accuracyM > rules.maxGpsAccuracyM) {
+    } else if (accuracyLimit !== null && m.accuracyM > accuracyLimit) {
       accuracyPass = false;
       reasons.push(
-        reason("ACCURACY_EXCEEDED", "FAIL", `${capture} GPS accuracy ${m.accuracyM} m exceeds ${rules.maxGpsAccuracyM} m.`, {
+        reason("ACCURACY_EXCEEDED", "FAIL", `${capture} GPS accuracy ${m.accuracyM} m exceeds ${accuracyLimit} m.`, {
           capture,
           value: m.accuracyM,
-          threshold: rules.maxGpsAccuracyM
+          threshold: accuracyLimit
         })
       );
     } else {
+      if (accuracyLimit === null && m.accuracyM > rules.maxGpsAccuracyM) {
+        reasons.push(
+          reason("REFERENCE_ACCURACY_LOW", "WARNING", `${capture} reference position is only accurate to ${m.accuracyM} m.`, {
+            capture,
+            value: m.accuracyM,
+            threshold: rules.maxGpsAccuracyM
+          })
+        );
+      }
       accuracyPass = locationUsable ? true : null;
     }
     let headingDeg = null;

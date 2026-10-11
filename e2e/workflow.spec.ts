@@ -87,7 +87,7 @@ test('inspector Before → repair → After (PASS) → reviewer approves', async
 
   // Before capture
   await page.getByRole('button', { name: 'อนุญาตกล้อง ตำแหน่ง และเข็มทิศ' }).click();
-  await expect(page.getByText('GPS accuracy: 2.1 ม. — ใช้ได้', { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('GPS accuracy: 2.1 ม. — บันทึกเป็นจุดอ้างอิง', { exact: true })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText('ทิศทาง: 125°', { exact: true })).toBeVisible();
   const shutter = page.getByRole('button', { name: 'ถ่ายภาพ' });
   await expect(shutter).toBeEnabled({ timeout: 15_000 });
@@ -224,4 +224,27 @@ test('standing still (watchPosition goes quiet) can still capture after 12 s', a
   await page.getByRole('button', { name: 'ถ่ายภาพ' }).click();
   await page.getByRole('button', { name: 'บันทึก' }).click();
   await expect(page.getByText('บันทึกภาพก่อนซ่อมเรียบร้อย')).toBeVisible({ timeout: 15_000 });
+});
+
+test('Before photo can be taken anywhere, even with 9 m GPS accuracy', async ({ browser }) => {
+  const b = createBackend();
+  const accounts = seed(b);
+  const context = await browser.newContext({ permissions: ['geolocation', 'camera'], geolocation: { ...ORIGIN, accuracy: 9 } });
+  const page = await context.newPage();
+  await wireBackend(page, b);
+  const stop = await startSensors(context, page, () => ({ ...ORIGIN, accuracy: 9 }), () => 40);
+  await login(page, accounts.inspector, 'Passw0rd1234');
+  await page.getByRole('link', { name: /สร้างรายการใหม่/ }).first().click();
+  await page.getByLabel(/ชื่อถนน/).fill('ถ.ใต้ต้นไม้');
+  await page.getByRole('button', { name: 'ถัดไป: ถ่ายภาพก่อนซ่อม' }).click();
+  await expect(page.getByText(/ถ่ายที่ไหนก็ได้/)).toBeVisible();
+  await page.getByRole('button', { name: 'อนุญาตกล้อง ตำแหน่ง และเข็มทิศ' }).click();
+  await expect(page.getByText('GPS accuracy: 9.0 ม. — ถ่ายได้ แต่จุดอ้างอิงอาจคลาดเคลื่อน', { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('button', { name: 'ถ่ายภาพ' })).toBeEnabled({ timeout: 10_000 });
+  await page.getByRole('button', { name: 'ถ่ายภาพ' }).click();
+  await expect(page.getByText(/จุดอ้างอิงอาจคลาดเคลื่อน ทำให้ถ่ายหลังซ่อม/)).toBeVisible();
+  await page.getByRole('button', { name: 'บันทึก' }).click();
+  await expect(page.getByText('บันทึกภาพก่อนซ่อมเรียบร้อย')).toBeVisible({ timeout: 15_000 });
+  stop();
+  expect(b.sheet('repair_photos').rows()[0].gps_accuracy_m).toBe('9');
 });

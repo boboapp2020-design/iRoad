@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveStatus, evaluateCapture, isCaptureAcceptable, RULES_V1, verifyCapturePair } from '@verification';
+import { CURRENT_RULES, deriveStatus, evaluateCapture, isCaptureAcceptable, RULES_V1, RULES_V2, verifyCapturePair } from '@verification';
 import { baseAfter, baseBefore } from './fixtures';
 
 describe('verifyCapturePair status rules', () => {
@@ -65,5 +65,31 @@ describe('evaluateCapture (Before acceptance / live gate)', () => {
   it('rejects a stale fix', () => {
     const b = baseBefore();
     expect(isCaptureAcceptable(evaluateCapture({ ...b, locationFixAt: Date.parse(b.capturedAt as string) - 60_000 }, 'BEFORE', RULES_V1))).toBe(false);
+  });
+});
+
+describe('rules v2: Before can be taken anywhere', () => {
+  it('is the current rules version and only relaxes the Before accuracy', () => {
+    expect(CURRENT_RULES).toBe(RULES_V2);
+    expect(RULES_V2).toMatchObject({ maxBeforeGpsAccuracyM: null, maxGpsAccuracyM: 3, maxDistanceM: 3, maxHeadingDifferenceDeg: 10 });
+    expect(RULES_V1.maxBeforeGpsAccuracyM).toBe(3);
+  });
+  it('accepts a Before capture with poor accuracy and records a warning', () => {
+    const e = evaluateCapture({ ...baseBefore(), accuracyM: 12 }, 'BEFORE', RULES_V2);
+    expect(isCaptureAcceptable(e)).toBe(true);
+    expect(e.reasons).toEqual([expect.objectContaining({ code: 'REFERENCE_ACCURACY_LOW', severity: 'WARNING' })]);
+  });
+  it('still needs Before coordinates, accuracy value and heading', () => {
+    expect(isCaptureAcceptable(evaluateCapture({ ...baseBefore(), latitude: null }, 'BEFORE', RULES_V2))).toBe(false);
+    expect(isCaptureAcceptable(evaluateCapture({ ...baseBefore(), accuracyM: null }, 'BEFORE', RULES_V2))).toBe(false);
+    expect(isCaptureAcceptable(evaluateCapture({ ...baseBefore(), headingDeg: null }, 'BEFORE', RULES_V2))).toBe(false);
+  });
+  it('After accuracy, distance and heading limits are unchanged', () => {
+    expect(verifyCapturePair({ ...baseBefore(), accuracyM: 9 }, baseAfter(), RULES_V2).overallStatus).toBe('PASS');
+    expect(verifyCapturePair({ ...baseBefore(), accuracyM: 9 }, { ...baseAfter(), accuracyM: 3.5 }, RULES_V2).overallStatus).toBe('FAIL');
+    expect(verifyCapturePair(baseBefore(), { ...baseAfter(), headingDeg: 140 }, RULES_V2).overallStatus).toBe('FAIL');
+  });
+  it('v1 records keep their stricter Before rule', () => {
+    expect(verifyCapturePair({ ...baseBefore(), accuracyM: 9 }, baseAfter(), RULES_V1).overallStatus).toBe('FAIL');
   });
 });

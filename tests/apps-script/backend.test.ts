@@ -138,11 +138,18 @@ describe('Before capture', () => {
     expect(files).toHaveLength(1);
     expect(Buffer.from(files[0].blob.getBytes().map((x: number) => x & 0xff)).equals(img)).toBe(true);
   });
-  it('rejects GPS accuracy worse than 3 m and stores nothing', () => {
+  it('accepts a Before photo taken anywhere, even with poor GPS accuracy (rules v2), with a warning', () => {
     const job = createJob(w);
-    const r = w.b.call('submitCapture', capturePayload(job.id, 'BEFORE', { accuracy_m: 4.2 }), w.inspector);
+    const r = w.b.call('submitCapture', capturePayload(job.id, 'BEFORE', { accuracy_m: 8.5 }), w.inspector);
+    expect(r.ok).toBe(true);
+    expect(r.data.photo.gps_accuracy_m).toBe(8.5);
+    expect(r.data.job.status).toBe('AWAITING_REPAIR');
+  });
+  it('still rejects a Before photo with no position at all, and stores nothing', () => {
+    const job = createJob(w);
+    const r = w.b.call('submitCapture', capturePayload(job.id, 'BEFORE', { latitude: null, longitude: null }), w.inspector);
     expect(r.error?.code).toBe('CAPTURE_REJECTED');
-    expect(r.error?.details.reasons.map((x: { code: string }) => x.code)).toContain('ACCURACY_EXCEEDED');
+    expect(r.error?.details.reasons.map((x: { code: string }) => x.code)).toContain('COORDINATES_MISSING');
     expect(w.b.sheet('repair_photos').rows()).toHaveLength(0);
     expect(w.b.drive.activeFiles()).toHaveLength(0);
   });
@@ -209,10 +216,11 @@ describe('After capture and verification', () => {
     const { job } = jobReadyForAfter(w);
     const r = w.b.call('submitCapture', afterPayload(job.id), w.inspector);
     expect(r.ok).toBe(true);
-    expect(r.data.verification).toMatchObject({ overall_status: 'PASS', gps_accuracy_pass: true, distance_pass: true, heading_pass: true, rules_version: 'rr-verify-v1' });
+    expect(r.data.verification).toMatchObject({ overall_status: 'PASS', gps_accuracy_pass: true, distance_pass: true, heading_pass: true, rules_version: 'rr-verify-v2' });
     expect(r.data.verification.measured_distance_m).toBeCloseTo(1.8, 3);
     expect(r.data.verification.heading_difference_degrees).toBe(3);
     expect(r.data.verification.thresholds.max_distance_m).toBe(3);
+    expect(r.data.verification.thresholds.max_before_gps_accuracy_m).toBeNull();
     expect(r.data.job.status).toBe('PENDING_REVIEW');
   });
   it('FAIL keeps the evidence, moves to NEEDS_RECAPTURE and can never be approved', () => {
@@ -222,6 +230,20 @@ describe('After capture and verification', () => {
     expect(r.data.verification.failure_reasons.map((x: { code: string }) => x.code)).toContain('DISTANCE_EXCEEDED');
     expect(r.data.job.status).toBe('NEEDS_RECAPTURE');
     expect(w.b.call('reviewJob', { id: job.id, decision: 'APPROVE', reason: 'looks fine' }, w.reviewer).error?.code).toBe('INVALID_STATE');
+  });
+  it('After GPS accuracy above 3 m is still a FAIL', () => {
+    const { job } = jobReadyForAfter(w);
+    const r = w.b.call('submitCapture', afterPayload(job.id, { accuracy_m: 4.2 }), w.inspector);
+    expect(r.data.verification.overall_status).toBe('FAIL');
+    expect(r.data.verification.failure_reasons.find((x: { code: string }) => x.code === 'ACCURACY_EXCEEDED')?.capture).toBe('AFTER');
+  });
+  it('a Before reference with poor accuracy can still PASS when After matches (warning kept)', () => {
+    const job = createJob(w);
+    w.b.call('submitCapture', capturePayload(job.id, 'BEFORE', { accuracy_m: 7 }), w.inspector);
+    w.b.call('markRepairDone', { id: job.id }, w.inspector);
+    const r = w.b.call('submitCapture', afterPayload(job.id), w.inspector);
+    expect(r.data.verification.overall_status).toBe('PASS');
+    expect(r.data.verification.failure_reasons.map((x: { code: string; severity: string }) => `${x.code}:${x.severity}`)).toContain('REFERENCE_ACCURACY_LOW:WARNING');
   });
   it('missing After heading gives INSUFFICIENT_DATA (not PASS)', () => {
     const { job } = jobReadyForAfter(w);

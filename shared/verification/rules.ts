@@ -10,8 +10,14 @@
  */
 export interface VerificationRules {
   readonly version: string;
-  /** Maximum reported horizontal GPS accuracy (meters), inclusive. */
+  /** Maximum reported horizontal GPS accuracy (meters), inclusive. Applies to the After capture. */
   readonly maxGpsAccuracyM: number;
+  /**
+   * Maximum GPS accuracy for the Before capture, or null when the Before photo
+   * may be taken anywhere with any accuracy (its position is only recorded as
+   * the reference point).
+   */
+  readonly maxBeforeGpsAccuracyM: number | null;
   /** Maximum distance between Before and After coordinates (meters), inclusive. */
   readonly maxDistanceM: number;
   /** Maximum circular heading difference (degrees), inclusive. */
@@ -29,6 +35,7 @@ export interface VerificationRules {
 export const RULES_V1: VerificationRules = Object.freeze({
   version: 'rr-verify-v1',
   maxGpsAccuracyM: 3,
+  maxBeforeGpsAccuracyM: 3,
   maxDistanceM: 3,
   maxHeadingDifferenceDeg: 10,
   maxLocationAgeMs: 10_000,
@@ -37,7 +44,18 @@ export const RULES_V1: VerificationRules = Object.freeze({
   futureToleranceMs: 1_000,
 });
 
-export const CURRENT_RULES: VerificationRules = RULES_V1;
+/**
+ * v2: the Before photo can be taken anywhere — its GPS accuracy is recorded
+ * (with a warning above 3 m) but is not a pass/fail criterion. The After photo
+ * must still be within 3 m (accuracy ≤ 3 m) and 10° of the Before reference.
+ */
+export const RULES_V2: VerificationRules = Object.freeze({
+  ...RULES_V1,
+  version: 'rr-verify-v2',
+  maxBeforeGpsAccuracyM: null,
+});
+
+export const CURRENT_RULES: VerificationRules = RULES_V2;
 
 /** Server-side submission limits (not part of the pass/fail verification). */
 export const SUBMISSION_LIMITS = Object.freeze({
@@ -52,6 +70,7 @@ export const SUBMISSION_LIMITS = Object.freeze({
 export function thresholdsSnapshot(rules: VerificationRules) {
   return {
     max_gps_accuracy_m: rules.maxGpsAccuracyM,
+    max_before_gps_accuracy_m: rules.maxBeforeGpsAccuracyM,
     max_distance_m: rules.maxDistanceM,
     max_heading_difference_deg: rules.maxHeadingDifferenceDeg,
     max_location_age_ms: rules.maxLocationAgeMs,

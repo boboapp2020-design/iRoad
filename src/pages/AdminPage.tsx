@@ -110,7 +110,8 @@ function Settings() {
       </div>
       <div>
         <div className="mb-1 text-sm font-semibold">{t('admin.thresholds')} — {r.version}</div>
-        <KeyValue label="GPS accuracy" value={`≤ ${r.maxGpsAccuracyM} m`} />
+        <KeyValue label="GPS accuracy (After)" value={`≤ ${r.maxGpsAccuracyM} m`} />
+        <KeyValue label="GPS accuracy (Before)" value={r.maxBeforeGpsAccuracyM === null ? 'reference only — not required' : `≤ ${r.maxBeforeGpsAccuracyM} m`} />
         <KeyValue label={t('verification.distance')} value={`≤ ${r.maxDistanceM} m`} />
         <KeyValue label={t('verification.headingDiff')} value={`≤ ${r.maxHeadingDifferenceDeg}°`} />
         <KeyValue label="Location freshness" value={`≤ ${r.maxLocationAgeMs / 1000} s`} />
