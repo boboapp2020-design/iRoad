@@ -38,6 +38,7 @@ export const api = {
   updateJob: (id: string, input: Partial<JobInput>) => call<{ job: Job }>('updateJob', { id, ...input }),
   markRepairDone: (id: string, note?: string) => call<{ job: Job }>('markRepairDone', { id, note }),
   cancelJob: (id: string, reason: string) => call<{ job: Job }>('cancelJob', { id, reason }),
+  deleteJob: (id: string, reason: string) => call<{ job: Job }>('deleteJob', { id, reason }),
   assignJob: (id: string, assigned_to: string) => call<{ job: Job }>('assignJob', { id, assigned_to }),
   submitCapture: (p: SubmitCapturePayload) => call<SubmitCaptureResult>('submitCapture', p as unknown as Record<string, unknown>, { timeoutMs: 120_000 }),
   getPhoto: (photo_id: string, variant: 'thumb' | 'original' = 'original') =>

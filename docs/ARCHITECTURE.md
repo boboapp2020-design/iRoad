@@ -85,6 +85,7 @@ DRAFT ──Before saved──► AWAITING_REPAIR ──mark repaired──► A
                      APPROVED  REJECTED  NEEDS_RECAPTURE
                                └──new After──► PENDING_REVIEW / NEEDS_RECAPTURE
 Any non-closed state ──cancel (reason)──► CANCELLED
+Any state except DELETED ──delete (reason ≥ 5 chars)──► DELETED   (inspector: own jobs, not APPROVED; admin: any)
 Admin invalidates Before ──► DRAFT;  admin invalidates current After ──► NEEDS_RECAPTURE
 ```
 
@@ -92,6 +93,9 @@ Admin invalidates Before ──► DRAFT;  admin invalidates current After ─�
   verification is PASS and that its records are intact.
 - Self-approval (the reviewer captured the evidence or is the assignee) is refused unless an admin enables
   `allow_self_approval`.
+- **Delete** is a soft delete: the job row, photos, Drive files, verifications and reviews are kept. The job is
+  hidden from lists and counts (filter status = DELETED to see it), and `deleted_at`, `deleted_by` and
+  `delete_reason` are stored. Each delete writes a `job.deleted` audit entry with the reason and previous status.
 - Uploading an After photo never completes a job. Only a reviewer's APPROVE sets `completed_at`.
 
 ## Security model

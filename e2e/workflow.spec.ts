@@ -247,3 +247,29 @@ test('Before photo can be taken anywhere, even with 9 m GPS accuracy', async ({ 
   stop();
   expect(b.sheet('repair_photos').rows()[0].gps_accuracy_m).toBe('9');
 });
+
+test('inspector deletes a job with a reason; it disappears and is logged', async ({ browser }) => {
+  const b = createBackend();
+  const accounts = seed(b);
+  const context = await browser.newContext({ permissions: ['geolocation'], geolocation: { ...ORIGIN, accuracy: 3 } });
+  const page = await context.newPage();
+  await wireBackend(page, b);
+  await login(page, accounts.inspector, 'Passw0rd1234');
+  await page.getByRole('link', { name: /สร้างรายการใหม่/ }).first().click();
+  await page.getByLabel(/ชื่อถนน/).fill('ถ.สร้างผิด');
+  await page.getByRole('button', { name: 'ถัดไป: ถ่ายภาพก่อนซ่อม' }).click();
+  await page.waitForURL(/capture/);
+  const jobId = b.sheet('repair_jobs').rows()[0].id;
+  await page.goto(`/jobs/${jobId}`);
+  await page.getByRole('button', { name: /ลบรายการซ่อม/ }).click();
+  const confirm = page.getByRole('button', { name: 'ยืนยัน' });
+  await expect(confirm).toBeDisabled(); // reason required
+  await page.locator('textarea').last().fill('สร้างซ้ำ ใช้งาน RR อื่นแทน');
+  await confirm.click();
+  await expect(page.getByRole('heading', { name: 'หน้าหลัก' })).toBeVisible();
+  await expect(page.getByText('ถ.สร้างผิด')).toHaveCount(0);
+  const job = b.sheet('repair_jobs').rows()[0];
+  expect(job).toMatchObject({ status: 'DELETED', delete_reason: 'สร้างซ้ำ ใช้งาน RR อื่นแทน' });
+  const log = b.sheet('audit_logs').rows().find((r) => r.action === 'job.deleted')!;
+  expect(JSON.parse(log.details).reason).toBe('สร้างซ้ำ ใช้งาน RR อื่นแทน');
+});

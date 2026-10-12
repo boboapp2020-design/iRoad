@@ -19,6 +19,7 @@ var AUTH_ACTIONS = {
   updateJob: actionUpdateJob,
   markRepairDone: actionMarkRepairDone,
   cancelJob: actionCancelJob,
+  deleteJob: actionDeleteJob,
   assignJob: actionAssignJob,
   submitCapture: actionSubmitCapture,
   getPhoto: actionGetPhoto,

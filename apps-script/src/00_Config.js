@@ -22,19 +22,23 @@ var JOB_STATUS = {
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
   NEEDS_RECAPTURE: 'NEEDS_RECAPTURE',
-  CANCELLED: 'CANCELLED'
+  CANCELLED: 'CANCELLED',
+  DELETED: 'DELETED'
 };
 
 /** Allowed status transitions. Anything not listed is refused. */
 var JOB_TRANSITIONS = {
-  DRAFT: ['AWAITING_REPAIR', 'CANCELLED'],
-  AWAITING_REPAIR: ['AWAITING_AFTER_PHOTO', 'DRAFT', 'CANCELLED'],
-  AWAITING_AFTER_PHOTO: ['PENDING_REVIEW', 'NEEDS_RECAPTURE', 'DRAFT', 'CANCELLED'],
-  NEEDS_RECAPTURE: ['PENDING_REVIEW', 'NEEDS_RECAPTURE', 'DRAFT', 'CANCELLED'],
-  PENDING_REVIEW: ['APPROVED', 'REJECTED', 'NEEDS_RECAPTURE', 'DRAFT', 'CANCELLED'],
-  REJECTED: ['PENDING_REVIEW', 'NEEDS_RECAPTURE', 'DRAFT', 'CANCELLED'],
-  APPROVED: [],
-  CANCELLED: []
+  DRAFT: ['AWAITING_REPAIR', 'CANCELLED', 'DELETED'],
+  AWAITING_REPAIR: ['AWAITING_AFTER_PHOTO', 'DRAFT', 'CANCELLED', 'DELETED'],
+  AWAITING_AFTER_PHOTO: ['PENDING_REVIEW', 'NEEDS_RECAPTURE', 'DRAFT', 'CANCELLED', 'DELETED'],
+  NEEDS_RECAPTURE: ['PENDING_REVIEW', 'NEEDS_RECAPTURE', 'DRAFT', 'CANCELLED', 'DELETED'],
+  PENDING_REVIEW: ['APPROVED', 'REJECTED', 'NEEDS_RECAPTURE', 'DRAFT', 'CANCELLED', 'DELETED'],
+  REJECTED: ['PENDING_REVIEW', 'NEEDS_RECAPTURE', 'DRAFT', 'CANCELLED', 'DELETED'],
+  // Only an administrator may delete an approved or cancelled job (checked in actionDeleteJob).
+  APPROVED: ['DELETED'],
+  CANCELLED: ['DELETED'],
+  // Soft delete: the job, its photos and verifications are kept; nothing follows.
+  DELETED: []
 };
 
 /** Job statuses from which an After photo may be submitted. */
@@ -80,7 +84,7 @@ var SCHEMA = {
     columns: ['id', 'job_code', 'road_name', 'location_description', 'damage_type', 'description', 'priority', 'notes',
       'status', 'assigned_to', 'created_by', 'created_at', 'updated_at', 'completed_at', 'cancel_reason',
       'current_before_photo_id', 'current_after_photo_id', 'current_verification_id', 'after_attempts',
-      'planned_latitude', 'planned_longitude', 'planned_accuracy_m']
+      'planned_latitude', 'planned_longitude', 'planned_accuracy_m', 'deleted_at', 'deleted_by', 'delete_reason']
   },
   repair_photos: {
     columns: ['id', 'repair_job_id', 'capture_type', 'attempt_number', 'status', 'status_reason', 'drive_file_id',

@@ -21,7 +21,7 @@ export const th = {
   status: {
     DRAFT: 'ร่าง (รอภาพก่อนซ่อม)', AWAITING_REPAIR: 'รอซ่อม', AWAITING_AFTER_PHOTO: 'รอถ่ายหลังซ่อม',
     PENDING_REVIEW: 'รอตรวจรับ', APPROVED: 'อนุมัติแล้ว', REJECTED: 'ไม่ผ่านการตรวจรับ',
-    NEEDS_RECAPTURE: 'ต้องถ่ายหลังซ่อมใหม่', CANCELLED: 'ยกเลิก',
+    NEEDS_RECAPTURE: 'ต้องถ่ายหลังซ่อมใหม่', CANCELLED: 'ยกเลิก', DELETED: 'ถูกลบ',
   },
   verification: {
     PASS: 'ผ่านเกณฑ์', FAIL: 'ไม่ผ่านเกณฑ์', INSUFFICIENT_DATA: 'ข้อมูลไม่เพียงพอ', PENDING: 'ยังไม่ได้ตรวจสอบ',
@@ -74,6 +74,7 @@ export const th = {
     invalidate: 'ยกเลิกหลักฐานนี้ (ผู้ดูแล)', invalidateReason: 'เหตุผลในการยกเลิกหลักฐาน', assign: 'มอบหมายงาน',
     plannedNote: 'พิกัดนี้ใช้อ้างอิงเท่านั้น ไม่ใช่หลักฐาน', notFound: 'ไม่พบรายการ หรือคุณไม่มีสิทธิ์เข้าถึง',
     confirmRepaired: 'ยืนยันว่าการซ่อมเสร็จแล้วและพร้อมถ่ายภาพหลังซ่อม?',
+    deleteJob: 'ลบรายการซ่อม', deleteReason: 'เหตุผลในการลบ (อย่างน้อย 5 ตัวอักษร) — จะถูกบันทึกใน log', deletedBanner: 'รายการนี้ถูกลบโดย {by} เมื่อ {at}', deletedReason: 'เหตุผล: {r}', deletedKept: 'รูปและข้อมูลหลักฐานยังเก็บไว้เพื่อการตรวจสอบ', deleted: 'ลบรายการแล้ว',
   },
   capture: {
     beforeTitle: 'ถ่ายภาพก่อนซ่อม', afterTitle: 'ถ่ายภาพหลังซ่อม', requestPermissions: 'อนุญาตกล้อง ตำแหน่ง และเข็มทิศ',

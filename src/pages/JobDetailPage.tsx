@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { StatusBadge, VerificationBadge } from '@/components/badges';
 import { EvidenceImage } from '@/components/EvidenceImage';
 import { MapView } from '@/components/MapView';
@@ -163,6 +163,7 @@ export function JobDetailPage() {
   const { id = '' } = useParams();
   const { t, intlLocale } = useI18n();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { data, error, loading, reload } = useAsync(() => api.getJob(id), [id]);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -211,6 +212,14 @@ export function JobDetailPage() {
             <VerificationBadge status={currentV?.overall_status ?? 'PENDING'} />
           </div>
         </div>
+
+        {job.status === 'DELETED' && (
+          <Alert kind="error">
+            <div className="font-semibold">{t('job.deletedBanner', { by: job.deleted_by_name ?? '—', at: fmtDateTime(job.deleted_at, intlLocale) })}</div>
+            <div>{t('job.deletedReason', { r: job.delete_reason ?? '—' })}</div>
+            <div className="text-xs">{t('job.deletedKept')}</div>
+          </Alert>
+        )}
 
         {before && before.latitude != null && before.longitude != null && (
           <div className="relative">
@@ -314,7 +323,18 @@ export function JobDetailPage() {
         {permissions.can_cancel && (
           <ReasonPrompt label={t('job.cancelReason')} minLength={3} buttonLabel={t('job.cancelJob')} onSubmit={async (r) => { await api.cancelJob(job.id, r); await reload(); }} />
         )}
-        {user?.role === 'admin' && <AdminTools detail={data} reload={() => void reload()} />}
+        {permissions.can_delete && (
+          <ReasonPrompt
+            label={t('job.deleteReason')}
+            minLength={5}
+            buttonLabel={`🗑 ${t('job.deleteJob')}`}
+            onSubmit={async (r) => {
+              await api.deleteJob(job.id, r);
+              navigate('/', { replace: true });
+            }}
+          />
+        )}
+        {user?.role === 'admin' && job.status !== 'DELETED' && <AdminTools detail={data} reload={() => void reload()} />}
         <Link to={`/reports?job=${job.id}`} className="block text-center text-sm font-semibold text-brand-700">📄 {t('dashboard.report')}</Link>
       </div>
     </div>

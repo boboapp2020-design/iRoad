@@ -8,7 +8,7 @@ function canViewJob(user, job) {
 
 /** Capture / mark-repaired / edit: the assigned inspector, or an admin. */
 function canWorkOnJob(user, job) {
-  if (!job) return false;
+  if (!job || job.status === JOB_STATUS.DELETED) return false;
   if (user.role === 'admin') return true;
   return user.role === 'inspector' && job.assigned_to === user.id;
 }
@@ -22,7 +22,15 @@ function loadJobForUser(user, jobId) {
 }
 
 function isTerminal(status) {
-  return status === JOB_STATUS.APPROVED || status === JOB_STATUS.CANCELLED;
+  return status === JOB_STATUS.APPROVED || status === JOB_STATUS.CANCELLED || status === JOB_STATUS.DELETED;
+}
+
+/** Inspectors may delete their own (assigned or created) jobs unless approved; admins any job. */
+function canDeleteJob(user, job) {
+  if (!job || job.status === JOB_STATUS.DELETED) return false;
+  if (user.role === 'admin') return true;
+  return user.role === 'inspector' && (job.assigned_to === user.id || job.created_by === user.id) &&
+    job.status !== JOB_STATUS.APPROVED;
 }
 
 /** The only place a job status changes. Enforces JOB_TRANSITIONS. */
@@ -82,7 +90,11 @@ function publicJob(j, names) {
     current_verification_id: j.current_verification_id || null,
     after_attempts: Number(j.after_attempts) || 0,
     planned_latitude: cellNumber(j.planned_latitude), planned_longitude: cellNumber(j.planned_longitude),
-    planned_accuracy_m: cellNumber(j.planned_accuracy_m)
+    planned_accuracy_m: cellNumber(j.planned_accuracy_m),
+    deleted_at: j.deleted_at || null,
+    deleted_by: j.deleted_by || null,
+    deleted_by_name: names[j.deleted_by] ? names[j.deleted_by].full_name : null,
+    delete_reason: j.delete_reason || null
   };
 }
 
@@ -169,7 +181,8 @@ function actionCreateJob(p, ctx) {
       id: newId(), job_code: nextJobCode(), status: JOB_STATUS.DRAFT, assigned_to: assignedTo, created_by: ctx.user.id,
       created_at: now, updated_at: now, completed_at: '', cancel_reason: '', current_before_photo_id: '',
       current_after_photo_id: '', current_verification_id: '', after_attempts: 0,
-      planned_latitude: lat, planned_longitude: lng, planned_accuracy_m: acc
+      planned_latitude: lat, planned_longitude: lng, planned_accuracy_m: acc,
+      deleted_at: '', deleted_by: '', delete_reason: ''
     };
     Object.keys(fields).forEach(function (k) { job[k] = fields[k]; });
     var stored = Db.insert('repair_jobs', [job])[0];
@@ -229,8 +242,32 @@ function actionAssignJob(p, ctx) {
   });
 }
 
-function visibleJobs(user) {
-  return Db.filter('repair_jobs', function (j) { return canViewJob(user, j); });
+function visibleJobs(user, includeDeleted) {
+  return Db.filter('repair_jobs', function (j) {
+    return canViewJob(user, j) && (includeDeleted || j.status !== JOB_STATUS.DELETED);
+  });
+}
+
+/**
+ * Soft delete with a mandatory reason. Nothing is removed: the job row, photos,
+ * Drive files, verifications and reviews stay for audit; the job disappears from
+ * lists and counts. Logged as job.deleted (and the status change).
+ */
+function actionDeleteJob(p, ctx) {
+  var reason = reqString(p, 'reason', { min: 5, max: LIMITS.maxTextLength });
+  return withLock(function () {
+    var job = loadJobForUser(ctx.user, p.id);
+    if (job.status === JOB_STATUS.DELETED) fail('INVALID_STATE', 'This job is already deleted.');
+    if (!canDeleteJob(ctx.user, job)) fail('FORBIDDEN', 'You cannot delete this job.');
+    var previous = job.status;
+    var now = nowIso();
+    transitionJob(job, JOB_STATUS.DELETED, ctx.user.id, reason, { deleted_at: now, deleted_by: ctx.user.id, delete_reason: reason });
+    writeAudit({
+      actor_id: ctx.user.id, repair_job_id: job.id, action: 'job.deleted', entity_type: 'repair_job', entity_id: job.id,
+      details: { job_code: job.job_code, reason: reason, previous_status: previous }
+    });
+    return { job: publicJob(job, userNameMap()) };
+  });
 }
 
 function actionListJobs(p, ctx) {
@@ -244,7 +281,8 @@ function actionListJobs(p, ctx) {
   var verifications = {};
   Db.all('verification_results').forEach(function (v) { verifications[v.id] = v; });
 
-  var jobs = visibleJobs(ctx.user).filter(function (j) {
+  // Deleted jobs are only listed when explicitly filtered by status DELETED.
+  var jobs = visibleJobs(ctx.user, status === JOB_STATUS.DELETED).filter(function (j) {
     if (status && j.status !== status) return false;
     if (q && [j.job_code, j.road_name, j.location_description].join(' ').toLowerCase().indexOf(q) < 0) return false;
     var created = Date.parse(j.created_at);
@@ -285,6 +323,7 @@ function actionGetJob(p, ctx) {
     permissions: {
       can_capture: canWorkOnJob(ctx.user, job),
       can_review: (ctx.user.role === 'reviewer' || ctx.user.role === 'admin') && job.status === JOB_STATUS.PENDING_REVIEW,
+      can_delete: canDeleteJob(ctx.user, job),
       can_cancel: !isTerminal(job.status) && (ctx.user.role === 'admin' ||
         (ctx.user.role === 'inspector' && job.created_by === ctx.user.id && (job.status === 'DRAFT' || job.status === 'AWAITING_REPAIR')))
     }
@@ -294,9 +333,9 @@ function actionGetJob(p, ctx) {
 function actionStats(p, ctx) {
   var counts = { total: 0 };
   Object.keys(JOB_STATUS).forEach(function (s) { counts[s] = 0; });
-  visibleJobs(ctx.user).forEach(function (j) {
-    counts.total++;
+  visibleJobs(ctx.user, true).forEach(function (j) {
     if (counts[j.status] !== undefined) counts[j.status]++;
+    if (j.status !== JOB_STATUS.DELETED) counts.total++;
   });
   return { counts: counts };
 }

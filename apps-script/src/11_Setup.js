@@ -13,7 +13,8 @@ function setup() {
     var existing = sh.getLastRow() >= 1 ? sh.getRange(1, 1, 1, cols.length).getValues()[0].map(fromCell) : [];
     var hasData = sh.getLastRow() >= 2;
     for (var c = 0; c < cols.length; c++) {
-      if (hasData && existing[c] !== cols[c]) {
+      // New columns may be appended to an existing sheet (empty header cell); anything else is refused.
+      if (hasData && existing[c] !== cols[c] && existing[c] !== '') {
         throw new Error('Sheet "' + name + '" has data with unexpected headers; refusing to overwrite. Column ' + (c + 1) + ' should be ' + cols[c]);
       }
     }

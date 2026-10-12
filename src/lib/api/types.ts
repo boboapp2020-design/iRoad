@@ -3,8 +3,8 @@ import type { VerificationReason, VerificationStatus } from '@verification';
 export type Role = 'admin' | 'inspector' | 'reviewer';
 export type JobStatus =
   | 'DRAFT' | 'AWAITING_REPAIR' | 'AWAITING_AFTER_PHOTO' | 'PENDING_REVIEW'
-  | 'APPROVED' | 'REJECTED' | 'NEEDS_RECAPTURE' | 'CANCELLED';
-export const JOB_STATUSES: JobStatus[] = ['DRAFT', 'AWAITING_REPAIR', 'AWAITING_AFTER_PHOTO', 'PENDING_REVIEW', 'APPROVED', 'REJECTED', 'NEEDS_RECAPTURE', 'CANCELLED'];
+  | 'APPROVED' | 'REJECTED' | 'NEEDS_RECAPTURE' | 'CANCELLED' | 'DELETED';
+export const JOB_STATUSES: JobStatus[] = ['DRAFT', 'AWAITING_REPAIR', 'AWAITING_AFTER_PHOTO', 'PENDING_REVIEW', 'APPROVED', 'REJECTED', 'NEEDS_RECAPTURE', 'CANCELLED', 'DELETED'];
 export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 export const PRIORITIES: Priority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
 export type DamageType = 'POTHOLE' | 'CRACK' | 'ALLIGATOR_CRACK' | 'RUTTING' | 'EDGE_BREAK' | 'SUBSIDENCE' | 'DRAINAGE' | 'OTHER';
@@ -47,6 +47,10 @@ export interface Job {
   planned_latitude: number | null;
   planned_longitude: number | null;
   planned_accuracy_m: number | null;
+  deleted_at: string | null;
+  deleted_by: string | null;
+  deleted_by_name: string | null;
+  delete_reason: string | null;
 }
 
 export interface JobListItem extends Job {
@@ -147,7 +151,7 @@ export interface JobDetail {
   reviews: Review[];
   corrections: Correction[];
   audit: AuditEntry[];
-  permissions: { can_capture: boolean; can_review: boolean; can_cancel: boolean };
+  permissions: { can_capture: boolean; can_review: boolean; can_cancel: boolean; can_delete: boolean };
 }
 
 export interface CaptureMeasurementPayload {

@@ -414,3 +414,49 @@ describe('reports', () => {
     expect(w.b.call('reportData', { job_id: job.id }, w.admin).data.rows).toHaveLength(1);
   });
 });
+
+describe('deleting a repair job (soft delete with reason)', () => {
+  let w: World;
+  beforeEach(() => { w = setupWorld(); });
+
+  it('the inspector can delete their job with a reason; it is logged and hidden but evidence is kept', () => {
+    const job = createJob(w);
+    w.b.call('submitCapture', capturePayload(job.id, 'BEFORE'), w.inspector);
+    expect(w.b.call('deleteJob', { id: job.id }, w.inspector).error?.code).toBe('VALIDATION_ERROR');
+    expect(w.b.call('deleteJob', { id: job.id, reason: 'ab' }, w.inspector).error?.code).toBe('VALIDATION_ERROR');
+    const r = w.b.call('deleteJob', { id: job.id, reason: 'สร้างซ้ำกับงาน RR-2026-000009' }, w.inspector);
+    expect(r.data.job).toMatchObject({ status: 'DELETED', delete_reason: 'สร้างซ้ำกับงาน RR-2026-000009' });
+    expect(r.data.job.deleted_at).toBeTruthy();
+    expect(w.b.call('listJobs', {}, w.inspector).data.jobs).toHaveLength(0);
+    expect(w.b.call('stats', {}, w.inspector).data.counts).toMatchObject({ total: 0, DELETED: 1 });
+    expect(w.b.call('listJobs', { status: 'DELETED' }, w.inspector).data.jobs).toHaveLength(1);
+    const detail = w.b.call('getJob', { id: job.id }, w.admin).data;
+    const log = detail.audit.find((a: { action: string }) => a.action === 'job.deleted');
+    expect(log.details).toMatchObject({ reason: 'สร้างซ้ำกับงาน RR-2026-000009', previous_status: 'AWAITING_REPAIR' });
+    expect(log.actor_name).toBe('inspector');
+    expect(detail.photos).toHaveLength(1);
+    expect(w.b.drive.activeFiles()).toHaveLength(1);
+    expect(w.b.call('verifyAuditChain', {}, w.admin).data.intact).toBe(true);
+  });
+  it('a deleted job accepts no further work', () => {
+    const job = createJob(w);
+    w.b.call('deleteJob', { id: job.id, reason: 'ผิดพลาดตอนสร้าง' }, w.inspector);
+    expect(w.b.call('submitCapture', capturePayload(job.id, 'BEFORE'), w.inspector).error?.code).toBe('FORBIDDEN');
+    expect(w.b.call('deleteJob', { id: job.id, reason: 'ลบซ้ำอีกรอบ' }, w.inspector).error?.code).toBe('INVALID_STATE');
+    expect(w.b.call('cancelJob', { id: job.id, reason: 'ยกเลิกหลังลบ' }, w.admin).error?.code).toBe('INVALID_TRANSITION');
+  });
+  it('other inspectors and reviewers cannot delete; inspectors cannot delete approved jobs; admins can', () => {
+    const { job } = jobReadyForAfter(w);
+    expect(w.b.call('deleteJob', { id: job.id, reason: 'ไม่ใช่งานของฉัน' }, w.inspector2).error?.code).toBe('NOT_FOUND');
+    expect(w.b.call('deleteJob', { id: job.id, reason: 'ผู้ตรวจรับลบ' }, w.reviewer).error?.code).toBe('FORBIDDEN');
+    w.b.call('submitCapture', afterPayload(job.id), w.inspector);
+    w.b.call('reviewJob', { id: job.id, decision: 'APPROVE', reason: 'เรียบร้อยดี' }, w.reviewer);
+    expect(w.b.call('deleteJob', { id: job.id, reason: 'อยากลบงานที่อนุมัติ' }, w.inspector).error?.code).toBe('FORBIDDEN');
+    expect(w.b.call('deleteJob', { id: job.id, reason: 'ผู้ดูแลลบตามคำสั่ง' }, w.admin).data.job.status).toBe('DELETED');
+  });
+  it('getJob reports can_delete correctly', () => {
+    const job = createJob(w);
+    expect(w.b.call('getJob', { id: job.id }, w.inspector).data.permissions.can_delete).toBe(true);
+    expect(w.b.call('getJob', { id: job.id }, w.reviewer).data.permissions.can_delete).toBe(false);
+  });
+});

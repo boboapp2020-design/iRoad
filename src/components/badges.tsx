@@ -11,6 +11,7 @@ const jobColors: Record<JobStatus, string> = {
   REJECTED: 'bg-red-100 text-red-800',
   NEEDS_RECAPTURE: 'bg-rose-100 text-rose-800',
   CANCELLED: 'bg-slate-200 text-slate-600',
+  DELETED: 'bg-slate-700 text-white',
 };
 
 export function StatusBadge({ status }: { status: JobStatus }) {

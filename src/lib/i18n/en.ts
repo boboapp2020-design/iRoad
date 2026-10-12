@@ -22,7 +22,7 @@ export const en: Dictionary = {
   nav: { home: 'Home', newJob: 'New job', admin: 'Admin', reports: 'Reports', map: 'Map' },
   status: {
     DRAFT: 'Draft (needs Before photo)', AWAITING_REPAIR: 'Awaiting repair', AWAITING_AFTER_PHOTO: 'Awaiting After photo',
-    PENDING_REVIEW: 'Pending review', APPROVED: 'Approved', REJECTED: 'Rejected', NEEDS_RECAPTURE: 'Needs recapture', CANCELLED: 'Cancelled',
+    PENDING_REVIEW: 'Pending review', APPROVED: 'Approved', REJECTED: 'Rejected', NEEDS_RECAPTURE: 'Needs recapture', CANCELLED: 'Cancelled', DELETED: 'Deleted',
   },
   verification: {
     PASS: 'PASS', FAIL: 'FAIL', INSUFFICIENT_DATA: 'INSUFFICIENT DATA', PENDING: 'PENDING',
@@ -75,6 +75,7 @@ export const en: Dictionary = {
     invalidate: 'Invalidate this evidence (admin)', invalidateReason: 'Reason for invalidating evidence', assign: 'Assign',
     plannedNote: 'Reference only — not evidence', notFound: 'Job not found or you do not have access',
     confirmRepaired: 'Confirm the repair is complete and ready for the After photo?',
+    deleteJob: 'Delete repair job', deleteReason: 'Reason for deleting (at least 5 characters) — recorded in the log', deletedBanner: 'Deleted by {by} on {at}', deletedReason: 'Reason: {r}', deletedKept: 'Photos and evidence records are kept for audit', deleted: 'Job deleted',
   },
   capture: {
     beforeTitle: 'Before capture', afterTitle: 'After capture', requestPermissions: 'Allow camera, location and compass',
