@@ -2021,16 +2021,22 @@ function writeAuditLocked(entry) {
 }
 
 /* ===== 10_Api.js ===== */
-/** Actions callable without a session. */
-var PUBLIC_ACTIONS = {
-  login: actionLogin,
-  requestPasswordReset: actionRequestPasswordReset,
-  resetPassword: actionResetPassword,
-  logout: actionLogout
-};
+/**
+ * Action tables are built lazily (at request time), so the order in which the
+ * script files are loaded in the Apps Script editor does not matter.
+ */
+function publicActions() {
+  return {
+    login: actionLogin,
+    requestPasswordReset: actionRequestPasswordReset,
+    resetPassword: actionResetPassword,
+    logout: actionLogout
+  };
+}
 
 /** Actions requiring a valid session (role checks happen inside each action). */
-var AUTH_ACTIONS = {
+function authActions() {
+  return {
   me: actionMe,
   changePassword: actionChangePassword,
   getSettings: actionGetSettings,
@@ -2057,7 +2063,8 @@ var AUTH_ACTIONS = {
   verifyAuditChain: actionVerifyAuditChain,
   invalidateEvidence: actionInvalidateEvidence,
   checkEvidenceIntegrity: actionCheckEvidenceIntegrity
-};
+  };
+}
 
 /** Allowed while the user still has to replace a temporary password. */
 var PASSWORD_CHANGE_ALLOWED = ['me', 'changePassword', 'getSettings'];
@@ -2079,15 +2086,17 @@ function handleRequest(body) {
     var payload = body.payload && typeof body.payload === 'object' ? body.payload : {};
     if (typeof action !== 'string') fail('BAD_REQUEST', 'Missing action.');
     var data;
-    if (Object.prototype.hasOwnProperty.call(PUBLIC_ACTIONS, action)) {
+    var pub = publicActions();
+    var priv = authActions();
+    if (Object.prototype.hasOwnProperty.call(pub, action)) {
       if (action === 'logout') payload.token = body.token;
-      data = PUBLIC_ACTIONS[action](payload, {});
-    } else if (Object.prototype.hasOwnProperty.call(AUTH_ACTIONS, action)) {
+      data = pub[action](payload, {});
+    } else if (Object.prototype.hasOwnProperty.call(priv, action)) {
       var auth = authenticate(body.token);
       if (auth.user.must_change_password === 'TRUE' && PASSWORD_CHANGE_ALLOWED.indexOf(action) < 0) {
         fail('PASSWORD_CHANGE_REQUIRED', 'Please set a new password before continuing.');
       }
-      data = AUTH_ACTIONS[action](payload, { user: auth.user, session: auth.session });
+      data = priv[action](payload, { user: auth.user, session: auth.session });
     } else {
       fail('UNKNOWN_ACTION', 'Unknown action.');
     }
@@ -2216,5 +2225,27 @@ function menuVerifyAudit() {
   Db.reset();
   var r = actionVerifyAuditChain({}, { user: { role: 'admin' } });
   SpreadsheetApp.getUi().alert(r.intact ? 'Audit log intact (' + r.checked + ' entries)' : 'Audit log BROKEN at row ' + r.first_broken_row);
+}
+
+/**
+ * Run this after pasting all files (before setup): it reports any file that is
+ * missing or was cut off while copying.
+ */
+function checkInstall() {
+  var required = [
+    'RRVerify', 'SCHEMA', 'ApiError', 'Db', 'hashPassword', 'authenticate', 'writeAudit', 'actionCreateJob',
+    'actionSubmitCapture', 'actionReviewJob', 'actionCreateUser', 'handleRequest', 'doPost', 'doGet', 'setup',
+    'createInitialAdmin', 'onOpen'
+  ];
+  var missing = required.filter(function (name) {
+    try { return typeof eval(name) === 'undefined'; } catch (e) { return true; }
+  });
+  var actions = [];
+  try { actions = Object.keys(authActions()).concat(Object.keys(publicActions())); } catch (e) { /* reported below */ }
+  var msg = missing.length
+    ? 'MISSING / incomplete: ' + missing.join(', ') + '. Re-paste the file(s) that define them.'
+    : 'OK: all ' + required.length + ' parts loaded; ' + actions.length + ' API actions; version ' + APP_VERSION + '; rules ' + RRVerify.CURRENT_RULES.version;
+  Logger.log(msg);
+  return msg;
 }
 

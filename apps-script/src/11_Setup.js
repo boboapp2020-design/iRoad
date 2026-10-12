@@ -100,3 +100,25 @@ function menuVerifyAudit() {
   var r = actionVerifyAuditChain({}, { user: { role: 'admin' } });
   SpreadsheetApp.getUi().alert(r.intact ? 'Audit log intact (' + r.checked + ' entries)' : 'Audit log BROKEN at row ' + r.first_broken_row);
 }
+
+/**
+ * Run this after pasting all files (before setup): it reports any file that is
+ * missing or was cut off while copying.
+ */
+function checkInstall() {
+  var required = [
+    'RRVerify', 'SCHEMA', 'ApiError', 'Db', 'hashPassword', 'authenticate', 'writeAudit', 'actionCreateJob',
+    'actionSubmitCapture', 'actionReviewJob', 'actionCreateUser', 'handleRequest', 'doPost', 'doGet', 'setup',
+    'createInitialAdmin', 'onOpen'
+  ];
+  var missing = required.filter(function (name) {
+    try { return typeof eval(name) === 'undefined'; } catch (e) { return true; }
+  });
+  var actions = [];
+  try { actions = Object.keys(authActions()).concat(Object.keys(publicActions())); } catch (e) { /* reported below */ }
+  var msg = missing.length
+    ? 'MISSING / incomplete: ' + missing.join(', ') + '. Re-paste the file(s) that define them.'
+    : 'OK: all ' + required.length + ' parts loaded; ' + actions.length + ' API actions; version ' + APP_VERSION + '; rules ' + RRVerify.CURRENT_RULES.version;
+  Logger.log(msg);
+  return msg;
+}

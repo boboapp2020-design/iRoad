@@ -18,13 +18,26 @@ npm run build:gas      # สร้าง apps-script/dist/Code.gs และ apps
 
 ## 2. วางโค้ดลงในชีต
 
-1. เปิดชีต Iroad → เมนู **ส่วนขยาย (Extensions) → Apps Script**
-2. ลบโค้ดเดิมในไฟล์ `Code.gs` แล้ววางเนื้อหาทั้งหมดจาก `apps-script/dist/Code.gs`
-3. ไปที่ **การตั้งค่าโปรเจกต์ (Project Settings)** → ติ๊ก **"Show 'appsscript.json' manifest file in editor"**
-4. เปิดไฟล์ `appsscript.json` ในหน้า editor แล้ววางเนื้อหาจาก `apps-script/dist/appsscript.json`
-5. กดบันทึก
+**วิธีที่แนะนำ: วางทีละไฟล์ (ไฟล์เล็ก คัดลอกพลาดยาก)** ใช้ไฟล์ในโฟลเดอร์ `apps-script/dist/files/`
 
-(ทางเลือก: ใช้ [clasp](https://github.com/google/clasp) ทำ `clasp push` จากโฟลเดอร์ `apps-script/dist/` แทนการคัดลอกด้วยมือ)
+1. เปิดชีต Iroad → เมนู **ส่วนขยาย (Extensions) → Apps Script**
+2. ไปที่ **การตั้งค่าโปรเจกต์ (Project Settings)** → ติ๊ก **"Show 'appsscript.json' manifest file in editor"**
+3. เปิดไฟล์ `appsscript.json` แล้ววางเนื้อหาจาก `apps-script/dist/appsscript.json` → บันทึก
+4. สร้างไฟล์สคริปต์ใหม่ (ปุ่ม **+ → สคริปต์**) ทีละไฟล์ ตั้งชื่อให้ตรงกับไฟล์ แล้ววางเนื้อหาทั้งหมดลงไป
+   ทำให้ครบ 14 ไฟล์ `00_verification`, `00_Config`, `01_Util`, `02_Db`, `03_Crypto`, `04_Auth`, `05_Audit`, `06_Jobs`,
+   `07_Capture`, `08_Review`, `09_Admin`, `10_Api`, `11_Setup` (และลบไฟล์ `Code.gs` เดิมที่ว่างเปล่าหรือเก่าออก)
+   - ลำดับไฟล์ในตัวแก้ไข **ไม่มีผล** ต่อการทำงาน
+5. เลือกฟังก์ชัน **`checkInstall`** → **เรียกใช้** → ดู Execution log ต้องขึ้น `OK: all 17 parts loaded ...`
+   ถ้าขึ้น `MISSING ...` แปลว่ามีไฟล์ที่ยังไม่ได้วางหรือวางไม่ครบ ให้วางไฟล์ที่เกี่ยวข้องใหม่
+
+**ทางเลือก: วางไฟล์เดียว** ใช้ `apps-script/dist/Code.gs` (ประมาณ 2,200 บรรทัด)
+- คัดลอกจากหน้า GitHub ด้วยปุ่ม **Copy raw file** (ไอคอนคัดลอกด้านบนขวาของไฟล์) อย่าลากคลุมแล้วคัดลอกจากหน้าแชท
+  เพราะข้อความอาจถูกตัด
+
+**ถ้าบันทึกไม่ได้ แล้วขึ้น `SyntaxError: Unexpected end of input`** แปลว่าไฟล์ที่วางถูกตัดท้าย (เช่นเหลือแค่ 200 บรรทัดแรก)
+ให้ลบแล้ววางใหม่ หรือเปลี่ยนไปใช้วิธีวางทีละไฟล์ข้างบน
+
+(ทางเลือก: ใช้ [clasp](https://github.com/google/clasp) ทำ `clasp push` จากโฟลเดอร์ `apps-script/dist/files/` พร้อม `appsscript.json` แทนการคัดลอกด้วยมือ)
 
 ## 3. รัน setup ครั้งแรก
 

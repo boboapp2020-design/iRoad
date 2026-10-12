@@ -1,13 +1,19 @@
-/** Actions callable without a session. */
-var PUBLIC_ACTIONS = {
-  login: actionLogin,
-  requestPasswordReset: actionRequestPasswordReset,
-  resetPassword: actionResetPassword,
-  logout: actionLogout
-};
+/**
+ * Action tables are built lazily (at request time), so the order in which the
+ * script files are loaded in the Apps Script editor does not matter.
+ */
+function publicActions() {
+  return {
+    login: actionLogin,
+    requestPasswordReset: actionRequestPasswordReset,
+    resetPassword: actionResetPassword,
+    logout: actionLogout
+  };
+}
 
 /** Actions requiring a valid session (role checks happen inside each action). */
-var AUTH_ACTIONS = {
+function authActions() {
+  return {
   me: actionMe,
   changePassword: actionChangePassword,
   getSettings: actionGetSettings,
@@ -34,7 +40,8 @@ var AUTH_ACTIONS = {
   verifyAuditChain: actionVerifyAuditChain,
   invalidateEvidence: actionInvalidateEvidence,
   checkEvidenceIntegrity: actionCheckEvidenceIntegrity
-};
+  };
+}
 
 /** Allowed while the user still has to replace a temporary password. */
 var PASSWORD_CHANGE_ALLOWED = ['me', 'changePassword', 'getSettings'];
@@ -56,15 +63,17 @@ function handleRequest(body) {
     var payload = body.payload && typeof body.payload === 'object' ? body.payload : {};
     if (typeof action !== 'string') fail('BAD_REQUEST', 'Missing action.');
     var data;
-    if (Object.prototype.hasOwnProperty.call(PUBLIC_ACTIONS, action)) {
+    var pub = publicActions();
+    var priv = authActions();
+    if (Object.prototype.hasOwnProperty.call(pub, action)) {
       if (action === 'logout') payload.token = body.token;
-      data = PUBLIC_ACTIONS[action](payload, {});
-    } else if (Object.prototype.hasOwnProperty.call(AUTH_ACTIONS, action)) {
+      data = pub[action](payload, {});
+    } else if (Object.prototype.hasOwnProperty.call(priv, action)) {
       var auth = authenticate(body.token);
       if (auth.user.must_change_password === 'TRUE' && PASSWORD_CHANGE_ALLOWED.indexOf(action) < 0) {
         fail('PASSWORD_CHANGE_REQUIRED', 'Please set a new password before continuing.');
       }
-      data = AUTH_ACTIONS[action](payload, { user: auth.user, session: auth.session });
+      data = priv[action](payload, { user: auth.user, session: auth.session });
     } else {
       fail('UNKNOWN_ACTION', 'Unknown action.');
     }

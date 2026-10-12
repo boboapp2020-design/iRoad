@@ -2,7 +2,7 @@
 // bundled as the global `RRVerify`, followed by the backend source files.
 // Paste dist/Code.gs + dist/appsscript.json into the Apps Script editor, or push with clasp.
 import { build } from 'esbuild';
-import { mkdirSync, readdirSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync, copyFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -33,5 +33,13 @@ const parts = [
   '',
 ];
 writeFileSync(join(distDir, 'Code.gs'), parts.join('\n\n'));
+
+// Also emit one small file per source file (easier to paste; load order does not matter).
+const filesDir = join(distDir, 'files');
+rmSync(filesDir, { recursive: true, force: true });
+mkdirSync(filesDir, { recursive: true });
+const header = (name) => `/* Road Repair Tracker - ${name} (GENERATED; paste as its own file in the Apps Script editor) */\n`;
+writeFileSync(join(filesDir, '00_verification.gs'), header('verification') + verification.trim() + '\n');
+for (const f of files) writeFileSync(join(filesDir, f.replace(/\.js$/, '.gs')), header(f) + readFileSync(join(srcDir, f), 'utf8').trim() + '\n');
 copyFileSync(join(root, 'apps-script', 'appsscript.json'), join(distDir, 'appsscript.json'));
 console.log(`Wrote apps-script/dist/Code.gs (${files.length} source files + verification bundle)`);

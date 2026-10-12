@@ -4,7 +4,7 @@
  * exact code that gets deployed is what the tests exercise.
  */
 import { createHash, createHmac, randomUUID } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
@@ -147,7 +147,8 @@ export interface Backend {
   sheet: (name: string) => FakeSheet;
 }
 
-export function createBackend(): Backend {
+/** `fileOrder`: load dist/files/*.gs one by one in this order (simulates pasting separate files). Default: the single Code.gs. */
+export function createBackend(opts: { fileOrder?: (names: string[]) => string[] } = {}): Backend {
   const ss = new FakeSpreadsheet();
   const drive = new FakeDrive();
   const props = new Map<string, string>();
@@ -180,7 +181,13 @@ export function createBackend(): Backend {
     Session: { getEffectiveUser: () => ({ getEmail: () => 'owner@example.com' }) },
   };
   vm.createContext(ctx);
-  vm.runInContext(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../../apps-script/dist/Code.gs'), 'utf8'), ctx, { filename: 'Code.gs' });
+  const dist = join(dirname(fileURLToPath(import.meta.url)), '../../apps-script/dist');
+  if (opts.fileOrder) {
+    const names = opts.fileOrder(readdirSync(join(dist, 'files')).filter((n) => n.endsWith('.gs')).sort());
+    for (const n of names) vm.runInContext(readFileSync(join(dist, 'files', n), 'utf8'), ctx, { filename: n });
+  } else {
+    vm.runInContext(readFileSync(join(dist, 'Code.gs'), 'utf8'), ctx, { filename: 'Code.gs' });
+  }
   vm.runInContext('LIMITS.pbkdf2Iterations = 500;', ctx); // keep tests fast; production uses 10000
 
   return {

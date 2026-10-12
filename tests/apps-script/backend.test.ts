@@ -460,3 +460,26 @@ describe('deleting a repair job (soft delete with reason)', () => {
     expect(w.b.call('getJob', { id: job.id }, w.reviewer).data.permissions.can_delete).toBe(false);
   });
 });
+
+describe('split files (pasted one by one in the Apps Script editor)', () => {
+  const orders: Record<string, (n: string[]) => string[]> = {
+    sorted: (n) => n,
+    reversed: (n) => [...n].reverse(),
+    'verification last': (n) => [...n.filter((x) => !x.includes('verification')), ...n.filter((x) => x.includes('verification'))],
+  };
+  for (const [label, fileOrder] of Object.entries(orders)) {
+    it(`loads and works in ${label} order, and checkInstall passes`, () => {
+      const b = createBackend({ fileOrder });
+      expect(b.ctx.checkInstall()).toMatch(/^OK: all \d+ parts loaded/);
+      b.ctx.setup();
+      const temp = b.ctx.createInitialAdmin('admin@example.com', 'Admin').temporary_password;
+      const login = b.call('login', { email: 'admin@example.com', password: temp });
+      expect(login.ok).toBe(true);
+      expect(b.call('stats', {}, login.data.token).error?.code).toBe('PASSWORD_CHANGE_REQUIRED');
+    });
+  }
+  it('checkInstall reports a missing / cut-off file', () => {
+    const b = createBackend({ fileOrder: (n) => n.filter((x) => !x.startsWith('08_')) });
+    expect(b.ctx.checkInstall()).toMatch(/MISSING.*actionReviewJob/);
+  });
+});
