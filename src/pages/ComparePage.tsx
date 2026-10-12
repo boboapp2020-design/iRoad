@@ -6,7 +6,7 @@ import { api, type Photo } from '@/lib/api';
 import { errorMessage, fmtCoord, fmtDateTime, fmtNum, reasonText } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { useAsync } from '@/lib/useAsync';
-import { beforeAccuracyLimit } from '@/features/capture/captureGate';
+import { afterAccuracyLimit, beforeAccuracyLimit } from '@/features/capture/captureGate';
 
 function Meta({ p }: { p: Photo }) {
   const { t, intlLocale } = useI18n();
@@ -32,14 +32,14 @@ export function ComparePage() {
   const before = data.photos.find((p) => p.id === (v?.before_photo_id ?? data.job.current_before_photo_id));
   const after = data.photos.find((p) => p.id === (v?.after_photo_id ?? data.job.current_after_photo_id));
   const status = v?.overall_status ?? 'PENDING';
-  const acc = v?.thresholds.max_gps_accuracy_m ?? 3;
+  const afterLimit = v ? afterAccuracyLimit(v.thresholds) : null;
   const beforeLimit = v ? beforeAccuracyLimit(v.thresholds) : null;
   const rows: [string, string, boolean | null | undefined][] = v
     ? [
         [t('verification.distance'), v.measured_distance_m == null ? '—' : t('common.meters', { v: fmtNum(v.measured_distance_m) }), v.distance_pass],
         [t('verification.headingDiff'), v.heading_difference_degrees == null ? '—' : `${fmtNum(v.heading_difference_degrees)}°`, v.heading_pass],
         [t('verification.gpsBefore'), t('common.meters', { v: fmtNum(v.before_accuracy_m) }), beforeLimit === null ? undefined : v.before_accuracy_m == null ? null : v.before_accuracy_m <= beforeLimit],
-        [t('verification.gpsAfter'), t('common.meters', { v: fmtNum(v.after_accuracy_m) }), v.after_accuracy_m == null ? null : v.after_accuracy_m <= acc],
+        [t('verification.gpsAfter'), t('common.meters', { v: fmtNum(v.after_accuracy_m) }), afterLimit === null ? undefined : v.after_accuracy_m == null ? null : v.after_accuracy_m <= afterLimit],
       ]
     : [];
 

@@ -117,9 +117,9 @@ test('inspector Before → repair → After (PASS) → reviewer approves', async
   await page.screenshot({ path: 'test-results/06-after-blocked.png' });
 
   // Move into tolerance
-  position = { latitude: ORIGIN.latitude + 1.8 / M_PER_DEG, longitude: ORIGIN.longitude, accuracy: 2.4 };
+  position = { latitude: ORIGIN.latitude + 0.6 / M_PER_DEG, longitude: ORIGIN.longitude, accuracy: 2.4 };
   heading = 128;
-  await expect(page.getByText('ระยะจากจุดเดิม: 1.8 ม. — อยู่ในเกณฑ์', { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('ระยะจากจุดเดิม: 0.6 ม. — อยู่ในเกณฑ์', { exact: true })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText('ทิศทาง: 128° ต่างจากเดิม 3° — อยู่ในเกณฑ์', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'ถ่ายภาพ' })).toBeEnabled({ timeout: 10_000 });
   await page.screenshot({ path: 'test-results/07-after-ready.png' });
@@ -239,10 +239,9 @@ test('Before photo can be taken anywhere, even with 9 m GPS accuracy', async ({ 
   await page.getByRole('button', { name: 'ถัดไป: ถ่ายภาพก่อนซ่อม' }).click();
   await expect(page.getByText(/ถ่ายที่ไหนก็ได้/)).toBeVisible();
   await page.getByRole('button', { name: 'อนุญาตกล้อง ตำแหน่ง และเข็มทิศ' }).click();
-  await expect(page.getByText('GPS accuracy: 9.0 ม. — ถ่ายได้ แต่จุดอ้างอิงอาจคลาดเคลื่อน', { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('GPS accuracy: 9.0 ม. — บันทึกเป็นจุดอ้างอิง', { exact: true })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('button', { name: 'ถ่ายภาพ' })).toBeEnabled({ timeout: 10_000 });
   await page.getByRole('button', { name: 'ถ่ายภาพ' }).click();
-  await expect(page.getByText(/จุดอ้างอิงอาจคลาดเคลื่อน ทำให้ถ่ายหลังซ่อม/)).toBeVisible();
   await page.getByRole('button', { name: 'บันทึก' }).click();
   await expect(page.getByText('บันทึกภาพก่อนซ่อมเรียบร้อย')).toBeVisible({ timeout: 15_000 });
   stop();

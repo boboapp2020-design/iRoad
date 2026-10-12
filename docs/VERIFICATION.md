@@ -1,6 +1,15 @@
-# Verification rules (current: `rr-verify-v2`)
+# Verification rules (current: `rr-verify-v3`)
 
-> **v2 (current), decided by the project owner:** the **Before photo can be taken anywhere**. Its position, GPS
+> **v3 (current), decided by the project owner:** GPS accuracy is **not a criterion** for either photo. It is
+> still recorded and shown. The Before photo can be taken anywhere. The After photo must be **≤ 1 m** from the
+> Before position and its heading must be within **±10°** of the Before heading. Both photos still need coordinates,
+> a reliable heading and readings no older than 10 s.
+>
+> **Important limitation:** phone GPS typically reports a horizontal accuracy of 3–5 m (68% radius). Two readings
+> taken at the exact same spot can differ by more than 1 m, so a correctly positioned After photo may fail, and a
+> nearby one may pass by chance. The UI shows the recorded accuracy so reviewers can judge it.
+
+> **v2:** the **Before photo can be taken anywhere**. Its position, GPS
 > accuracy and heading are recorded as the *reference point*. Accuracy is **not** a pass/fail criterion for Before.
 > When it is worse than 3 m, a `REFERENCE_ACCURACY_LOW` **warning** is stored and shown. The Before photo still needs
 > coordinates, an accuracy value, a reliable heading and fresh readings, because the After photo is matched

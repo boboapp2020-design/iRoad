@@ -12,7 +12,7 @@ import { arrayBufferToBase64, sha256Hex, uuid } from '@/lib/hash';
 import { useI18n } from '@/lib/i18n';
 import { useAsync } from '@/lib/useAsync';
 import { DemoBanner } from '@/demo/DemoBanner';
-import { beforeAccuracyLimit, evaluateGate, measurementFrom, toPayload, type GateCheck } from './captureGate';
+import { afterAccuracyLimit, beforeAccuracyLimit, evaluateGate, measurementFrom, toPayload, type GateCheck } from './captureGate';
 import { createSubmitter, type SubmissionState } from './submitter';
 import { useCamera, type CaptureMethod } from './useCamera';
 import { useGeolocation } from './useGeolocation';
@@ -205,9 +205,9 @@ export function CapturePage() {
             <ul className="list-inside list-disc space-y-1 text-sm">
               {captureType === 'BEFORE' && rules.maxBeforeGpsAccuracyM === null ? (
                 <li>{t('capture.critBeforeAnywhere', { d: rules.maxDistanceM, h: rules.maxHeadingDifferenceDeg })}</li>
-              ) : (
+              ) : (captureType === 'BEFORE' ? rules.maxBeforeGpsAccuracyM : rules.maxGpsAccuracyM) !== null ? (
                 <li>{t('capture.critAccuracy', { v: captureType === 'BEFORE' ? rules.maxBeforeGpsAccuracyM : rules.maxGpsAccuracyM })}</li>
-              )}
+              ) : null}
               {captureType === 'AFTER' && <li>{t('capture.critDistance', { v: rules.maxDistanceM })}</li>}
               {captureType === 'AFTER' && <li>{t('capture.critHeading', { v: rules.maxHeadingDifferenceDeg })}</li>}
               <li>{t('capture.critFresh', { v: rules.maxLocationAgeMs / 1000 })}</li>
@@ -259,7 +259,7 @@ export function CapturePage() {
             <KeyValue label={t('job.fileSize')} value={`${fmtBytes(captured.blob.size)} · ${captured.width}×${captured.height}`} />
             <KeyValue label={t('job.sha256')} value={captured.sha256} mono />
           </div>
-          {captureType === 'BEFORE' && m.accuracyM != null && m.accuracyM > rules.maxGpsAccuracyM && <Alert kind="warning">{t('capture.referenceWeakNote')}</Alert>}
+          {captureType === 'BEFORE' && rules.maxGpsAccuracyM !== null && m.accuracyM != null && m.accuracyM > rules.maxGpsAccuracyM && <Alert kind="warning">{t('capture.referenceWeakNote')}</Alert>}
           {captureType === 'AFTER' && submission.kind !== 'success' && <Alert kind="info">{t('capture.pendingServer')}</Alert>}
           {submission.kind === 'uploading' && <Alert kind="info"><Spinner small /> {t('capture.uploading')} {t('capture.leaveWarning')}</Alert>}
           {submission.kind === 'unknown' && <Alert kind="warning">{t('capture.uploadUnknown')}</Alert>}
@@ -360,6 +360,7 @@ export function CapturePage() {
 function AfterResult({ verification: v, beforeId, afterId, onBack }: { verification: Verification; beforeId: string; afterId: string; onBack: () => void }) {
   const { t } = useI18n();
   const beforeLimit = beforeAccuracyLimit(v.thresholds);
+  const afterLimit = afterAccuracyLimit(v.thresholds);
   const row = (label: string, value: string, pass: boolean | null | undefined) => (
     <div className="flex items-center justify-between border-b border-slate-100 py-2 text-sm">
       <span className="text-slate-600">{label}</span>
@@ -379,7 +380,7 @@ function AfterResult({ verification: v, beforeId, afterId, onBack }: { verificat
           {row(t('verification.distance'), v.measured_distance_m == null ? '—' : t('common.meters', { v: fmtNum(v.measured_distance_m) }), v.distance_pass)}
           {row(t('verification.headingDiff'), v.heading_difference_degrees == null ? '—' : `${fmtNum(v.heading_difference_degrees)}°`, v.heading_pass)}
           {row(t('verification.gpsBefore'), t('common.meters', { v: fmtNum(v.before_accuracy_m) }), beforeLimit === null ? undefined : v.before_accuracy_m == null ? null : v.before_accuracy_m <= beforeLimit)}
-          {row(t('verification.gpsAfter'), t('common.meters', { v: fmtNum(v.after_accuracy_m) }), v.after_accuracy_m == null ? null : v.after_accuracy_m <= (v.thresholds.max_gps_accuracy_m ?? 3))}
+          {row(t('verification.gpsAfter'), t('common.meters', { v: fmtNum(v.after_accuracy_m) }), afterLimit === null ? undefined : v.after_accuracy_m == null ? null : v.after_accuracy_m <= afterLimit)}
         </div>
         <div className={`rounded-2xl p-4 ring-1 ${box}`}>
           <div className="flex items-center gap-3"><VerificationBadge status={v.overall_status} large /></div>

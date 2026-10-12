@@ -83,7 +83,7 @@ export const en: Dictionary = {
     critHeading: 'Heading difference ≤ {v}°', critFresh: 'Location fresher than {v} s',
     waitingGps: 'Waiting for an accurate GPS location...', gpsOk: 'GPS accuracy: {v} m — acceptable.', gpsBad: 'GPS accuracy: {v} m — not enough (need ≤ {t} m)',
     gpsStale: 'GPS reading is stale, waiting for a fresh one...',
-    gpsReference: 'GPS accuracy: {v} m — recorded as the reference', gpsReferenceWeak: 'GPS accuracy: {v} m — allowed, but the reference may be imprecise',
+    gpsInfo: 'GPS accuracy: {v} m (recorded, not a criterion)', gpsReference: 'GPS accuracy: {v} m — recorded as the reference', gpsReferenceWeak: 'GPS accuracy: {v} m — allowed, but the reference may be imprecise',
     critBeforeAnywhere: 'Take it anywhere — position and heading are recorded as the reference. The After photo must be at the same spot (≤ {d} m) and direction (≤ {h}°)',
     referenceWeakNote: 'If the Before GPS accuracy is worse than 3 m, the reference point may be off, making the After photo harder to match.', gpsDenied: 'Location permission denied. Enable it in the browser settings.',
     gpsUnavailable: 'GPS is not available on this device', distanceOk: 'Distance from original: {v} m — within limit',

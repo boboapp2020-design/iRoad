@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RULES_V1, RULES_V2 } from '@verification';
+import { RULES_V1, RULES_V2, RULES_V3 } from '@verification';
 import { evaluateGate } from '@/features/capture/captureGate';
 import type { GeoFix } from '@/features/capture/useGeolocation';
 import type { HeadingReading } from '@/features/capture/useHeading';
@@ -85,5 +85,21 @@ describe('capture gate with rules v2', () => {
   });
   it('After can be ready against a weak Before reference', () => {
     expect(evaluateGate({ mode: 'AFTER', fix: fix(), heading: heading(), headingStatus: 'ok', now: NOW, rules: RULES_V2, before: { ...before, gps_accuracy_m: 9 } }).ready).toBe(true);
+  });
+});
+
+describe('capture gate with rules v3', () => {
+  it('After ignores accuracy and needs ≤ 1 m and ≤ 10°', () => {
+    const ok = evaluateGate({ mode: 'AFTER', fix: fix({ accuracy: 6 }), heading: heading(), headingStatus: 'ok', now: NOW, rules: RULES_V3, before });
+    expect(ok.ready).toBe(true); // fix() is ~0.37 m from Before
+    expect(ok.checks[0]).toMatchObject({ state: 'ok', message: 'capture.gpsInfo' });
+    const far = evaluateGate({ mode: 'AFTER', fix: fix({ latitude: 13.764321 + 1.5 / 111195 }), heading: heading(), headingStatus: 'ok', now: NOW, rules: RULES_V3, before });
+    expect(far.ready).toBe(false);
+    expect(far.checks.find((c) => c.key === 'distance')).toMatchObject({ state: 'bad', params: { v: '1.5' } });
+  });
+  it('Before ignores accuracy', () => {
+    const g = evaluateGate({ mode: 'BEFORE', fix: fix({ accuracy: 25 }), heading: heading(), headingStatus: 'ok', now: NOW, rules: RULES_V3 });
+    expect(g.ready).toBe(true);
+    expect(g.checks[0].message).toBe('capture.gpsReference');
   });
 });

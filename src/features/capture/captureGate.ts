@@ -100,8 +100,9 @@ export function evaluateGate(input: GateInput): GateResult {
   else if (now - fix.timestamp > rules.maxLocationAgeMs) checks.push({ key: 'gps', state: 'waiting', message: 'capture.gpsStale' });
   else if (gpsLimit !== null && fix.accuracy > gpsLimit) checks.push({ key: 'gps', state: 'bad', message: 'capture.gpsBad', params: { v: r1(fix.accuracy), t: gpsLimit } });
   else if (gpsLimit === null) {
-    const weak = fix.accuracy > rules.maxGpsAccuracyM;
-    checks.push({ key: 'gps', state: 'ok', message: weak ? 'capture.gpsReferenceWeak' : 'capture.gpsReference', params: { v: r1(fix.accuracy) } });
+    const weak = rules.maxGpsAccuracyM !== null && fix.accuracy > rules.maxGpsAccuracyM;
+    const message = mode === 'AFTER' ? 'capture.gpsInfo' : weak ? 'capture.gpsReferenceWeak' : 'capture.gpsReference';
+    checks.push({ key: 'gps', state: 'ok', message, params: { v: r1(fix.accuracy) } });
   } else checks.push({ key: 'gps', state: 'ok', message: 'capture.gpsOk', params: { v: r1(fix.accuracy) } });
 
   // Distance (After only)
@@ -153,6 +154,12 @@ export function evaluateGate(input: GateInput): GateResult {
  * Before-accuracy limit used by a stored verification: the v2+ snapshot stores
  * max_before_gps_accuracy_m (null = reference only); v1 used max_gps_accuracy_m.
  */
+/** After-accuracy limit used by a stored verification (null = recorded only, v3+). */
+export function afterAccuracyLimit(thresholds: Record<string, number | null | undefined>): number | null {
+  if ('max_gps_accuracy_m' in thresholds) return thresholds.max_gps_accuracy_m ?? null;
+  return 3;
+}
+
 export function beforeAccuracyLimit(thresholds: Record<string, number | null | undefined>): number | null {
   if ('max_before_gps_accuracy_m' in thresholds) return thresholds.max_before_gps_accuracy_m ?? null;
   return thresholds.max_gps_accuracy_m ?? 3;

@@ -10,8 +10,11 @@
  */
 export interface VerificationRules {
   readonly version: string;
-  /** Maximum reported horizontal GPS accuracy (meters), inclusive. Applies to the After capture. */
-  readonly maxGpsAccuracyM: number;
+  /**
+   * Maximum reported horizontal GPS accuracy (meters), inclusive, for the After
+   * capture — or null when accuracy is recorded but not a criterion.
+   */
+  readonly maxGpsAccuracyM: number | null;
   /**
    * Maximum GPS accuracy for the Before capture, or null when the Before photo
    * may be taken anywhere with any accuracy (its position is only recorded as
@@ -55,7 +58,20 @@ export const RULES_V2: VerificationRules = Object.freeze({
   maxBeforeGpsAccuracyM: null,
 });
 
-export const CURRENT_RULES: VerificationRules = RULES_V2;
+/**
+ * v3 (project owner): GPS accuracy is no longer a criterion for either photo
+ * (it is still recorded). The After photo must be within 1 m of the Before
+ * position and within ±10° of the Before heading.
+ */
+export const RULES_V3: VerificationRules = Object.freeze({
+  ...RULES_V2,
+  version: 'rr-verify-v3',
+  maxGpsAccuracyM: null,
+  maxBeforeGpsAccuracyM: null,
+  maxDistanceM: 1,
+});
+
+export const CURRENT_RULES: VerificationRules = RULES_V3;
 
 /** Server-side submission limits (not part of the pass/fail verification). */
 export const SUBMISSION_LIMITS = Object.freeze({

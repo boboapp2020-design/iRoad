@@ -166,7 +166,13 @@ export function evaluateCapture(
   // maxBeforeGpsAccuracyM; when that is null it is a recorded reference only.
   const accuracyLimit = capture === 'BEFORE' ? rules.maxBeforeGpsAccuracyM : rules.maxGpsAccuracyM;
   let accuracyPass: boolean | null = null;
-  if (m.accuracyM == null) {
+  if (accuracyLimit === null && rules.maxGpsAccuracyM === null) {
+    // Accuracy is not a criterion at all (v3+): record it, never gate on it.
+    if (m.accuracyM != null && !isValidAccuracy(m.accuracyM)) {
+      reasons.push(reason('ACCURACY_INVALID', 'WARNING', `${capture} GPS accuracy value is invalid (not used as a criterion).`, { capture, value: m.accuracyM as number }));
+    }
+    accuracyPass = locationUsable ? true : null;
+  } else if (m.accuracyM == null) {
     reasons.push(reason('ACCURACY_MISSING', 'INSUFFICIENT_DATA', `${capture} GPS accuracy is missing.`, { capture }));
   } else if (!isValidAccuracy(m.accuracyM)) {
     reasons.push(reason('ACCURACY_INVALID', 'INSUFFICIENT_DATA', `${capture} GPS accuracy value is invalid.`, { capture, value: m.accuracyM as number }));
@@ -181,7 +187,7 @@ export function evaluateCapture(
       }),
     );
   } else {
-    if (accuracyLimit === null && m.accuracyM > rules.maxGpsAccuracyM) {
+    if (accuracyLimit === null && rules.maxGpsAccuracyM !== null && m.accuracyM > rules.maxGpsAccuracyM) {
       reasons.push(
         reason('REFERENCE_ACCURACY_LOW', 'WARNING', `${capture} reference position is only accurate to ${m.accuracyM} m.`, {
           capture,

@@ -98,5 +98,5 @@ export function jobReadyForAfter(w: World) {
 }
 
 export function afterPayload(jobId: string, m: Record<string, unknown> = {}) {
-  return capturePayload(jobId, 'AFTER', { ...northOf(ORIGIN, 1.8), accuracy_m: 2.4, heading_deg: 128, ...m });
+  return capturePayload(jobId, 'AFTER', { ...northOf(ORIGIN, 0.6), accuracy_m: 2.4, heading_deg: 128, ...m });
 }

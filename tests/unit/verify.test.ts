@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CURRENT_RULES, deriveStatus, evaluateCapture, isCaptureAcceptable, RULES_V1, RULES_V2, verifyCapturePair } from '@verification';
+import { CURRENT_RULES, deriveStatus, EARTH_RADIUS_M, evaluateCapture, isCaptureAcceptable, RULES_V1, RULES_V2, RULES_V3, verifyCapturePair } from '@verification';
 import { baseAfter, baseBefore } from './fixtures';
 
 describe('verifyCapturePair status rules', () => {
@@ -69,8 +69,7 @@ describe('evaluateCapture (Before acceptance / live gate)', () => {
 });
 
 describe('rules v2: Before can be taken anywhere', () => {
-  it('is the current rules version and only relaxes the Before accuracy', () => {
-    expect(CURRENT_RULES).toBe(RULES_V2);
+  it('only relaxes the Before accuracy compared with v1', () => {
     expect(RULES_V2).toMatchObject({ maxBeforeGpsAccuracyM: null, maxGpsAccuracyM: 3, maxDistanceM: 3, maxHeadingDifferenceDeg: 10 });
     expect(RULES_V1.maxBeforeGpsAccuracyM).toBe(3);
   });
@@ -91,5 +90,35 @@ describe('rules v2: Before can be taken anywhere', () => {
   });
   it('v1 records keep their stricter Before rule', () => {
     expect(verifyCapturePair({ ...baseBefore(), accuracyM: 9 }, baseAfter(), RULES_V1).overallStatus).toBe('FAIL');
+  });
+});
+
+describe('rules v3 (current): no accuracy criterion, 1 m and ±10°', () => {
+  const north = (m: number) => ({ latitude: baseBefore().latitude + (m / EARTH_RADIUS_M) * (180 / Math.PI), longitude: baseBefore().longitude });
+  it('is the current rules version', () => {
+    expect(CURRENT_RULES).toBe(RULES_V3);
+    expect(RULES_V3).toMatchObject({ version: 'rr-verify-v3', maxGpsAccuracyM: null, maxBeforeGpsAccuracyM: null, maxDistanceM: 1, maxHeadingDifferenceDeg: 10 });
+  });
+  it('ignores GPS accuracy (even missing) for both photos', () => {
+    const r = verifyCapturePair({ ...baseBefore(), accuracyM: 15 }, { ...baseAfter(), ...north(0.5), accuracyM: null }, RULES_V3);
+    expect(r.overallStatus).toBe('PASS');
+    expect(r.reasons.filter((x) => x.severity !== 'WARNING')).toEqual([]);
+  });
+  it('passes within 1 m and fails beyond 1 m', () => {
+    expect(verifyCapturePair(baseBefore(), { ...baseAfter(), ...north(0.99) }, RULES_V3).overallStatus).toBe('PASS');
+    const r = verifyCapturePair(baseBefore(), { ...baseAfter(), ...north(1.01) }, RULES_V3);
+    expect(r.overallStatus).toBe('FAIL');
+    expect(r.reasons.map((x) => x.code)).toContain('DISTANCE_EXCEEDED');
+  });
+  it('heading ±10° either side', () => {
+    expect(verifyCapturePair({ ...baseBefore(), headingDeg: 125 }, { ...baseAfter(), ...north(0.3), headingDeg: 115 }, RULES_V3).overallStatus).toBe('PASS');
+    expect(verifyCapturePair({ ...baseBefore(), headingDeg: 125 }, { ...baseAfter(), ...north(0.3), headingDeg: 136 }, RULES_V3).overallStatus).toBe('FAIL');
+    expect(verifyCapturePair({ ...baseBefore(), headingDeg: 355 }, { ...baseAfter(), ...north(0.3), headingDeg: 5 }, RULES_V3).overallStatus).toBe('PASS');
+  });
+  it('still requires coordinates, fresh readings and heading', () => {
+    expect(verifyCapturePair(baseBefore(), { ...baseAfter(), latitude: null }, RULES_V3).overallStatus).toBe('INSUFFICIENT_DATA');
+    expect(verifyCapturePair(baseBefore(), { ...baseAfter(), ...north(0.3), headingDeg: null }, RULES_V3).overallStatus).toBe('INSUFFICIENT_DATA');
+    const a = baseAfter();
+    expect(verifyCapturePair(baseBefore(), { ...a, ...north(0.3), locationFixAt: Date.parse(a.capturedAt as string) - 20_000 }, RULES_V3).overallStatus).toBe('INSUFFICIENT_DATA');
   });
 });

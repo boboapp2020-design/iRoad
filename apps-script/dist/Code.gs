@@ -28,6 +28,7 @@ var RRVerify = (() => {
     EARTH_RADIUS_M: () => EARTH_RADIUS_M,
     RULES_V1: () => RULES_V1,
     RULES_V2: () => RULES_V2,
+    RULES_V3: () => RULES_V3,
     SUBMISSION_LIMITS: () => SUBMISSION_LIMITS,
     bearingDeg: () => bearingDeg,
     cameraHeadingFromOrientation: () => cameraHeadingFromOrientation,
@@ -66,7 +67,14 @@ var RRVerify = (() => {
     version: "rr-verify-v2",
     maxBeforeGpsAccuracyM: null
   });
-  var CURRENT_RULES = RULES_V2;
+  var RULES_V3 = Object.freeze({
+    ...RULES_V2,
+    version: "rr-verify-v3",
+    maxGpsAccuracyM: null,
+    maxBeforeGpsAccuracyM: null,
+    maxDistanceM: 1
+  });
+  var CURRENT_RULES = RULES_V3;
   var SUBMISSION_LIMITS = Object.freeze({
     /** Captures older than this when they reach the server are rejected (ms). */
     maxSubmissionDelayMs: 15 * 6e4,
@@ -228,7 +236,12 @@ var RRVerify = (() => {
     const locationUsable = coordsValid && locationFresh;
     const accuracyLimit = capture === "BEFORE" ? rules.maxBeforeGpsAccuracyM : rules.maxGpsAccuracyM;
     let accuracyPass = null;
-    if (m.accuracyM == null) {
+    if (accuracyLimit === null && rules.maxGpsAccuracyM === null) {
+      if (m.accuracyM != null && !isValidAccuracy(m.accuracyM)) {
+        reasons.push(reason("ACCURACY_INVALID", "WARNING", `${capture} GPS accuracy value is invalid (not used as a criterion).`, { capture, value: m.accuracyM }));
+      }
+      accuracyPass = locationUsable ? true : null;
+    } else if (m.accuracyM == null) {
       reasons.push(reason("ACCURACY_MISSING", "INSUFFICIENT_DATA", `${capture} GPS accuracy is missing.`, { capture }));
     } else if (!isValidAccuracy(m.accuracyM)) {
       reasons.push(reason("ACCURACY_INVALID", "INSUFFICIENT_DATA", `${capture} GPS accuracy value is invalid.`, { capture, value: m.accuracyM }));
@@ -242,7 +255,7 @@ var RRVerify = (() => {
         })
       );
     } else {
-      if (accuracyLimit === null && m.accuracyM > rules.maxGpsAccuracyM) {
+      if (accuracyLimit === null && rules.maxGpsAccuracyM !== null && m.accuracyM > rules.maxGpsAccuracyM) {
         reasons.push(
           reason("REFERENCE_ACCURACY_LOW", "WARNING", `${capture} reference position is only accurate to ${m.accuracyM} m.`, {
             capture,

@@ -216,10 +216,11 @@ describe('After capture and verification', () => {
     const { job } = jobReadyForAfter(w);
     const r = w.b.call('submitCapture', afterPayload(job.id), w.inspector);
     expect(r.ok).toBe(true);
-    expect(r.data.verification).toMatchObject({ overall_status: 'PASS', gps_accuracy_pass: true, distance_pass: true, heading_pass: true, rules_version: 'rr-verify-v2' });
-    expect(r.data.verification.measured_distance_m).toBeCloseTo(1.8, 3);
+    expect(r.data.verification).toMatchObject({ overall_status: 'PASS', gps_accuracy_pass: true, distance_pass: true, heading_pass: true, rules_version: 'rr-verify-v3' });
+    expect(r.data.verification.measured_distance_m).toBeCloseTo(0.6, 3);
     expect(r.data.verification.heading_difference_degrees).toBe(3);
-    expect(r.data.verification.thresholds.max_distance_m).toBe(3);
+    expect(r.data.verification.thresholds.max_distance_m).toBe(1);
+    expect(r.data.verification.thresholds.max_gps_accuracy_m).toBeNull();
     expect(r.data.verification.thresholds.max_before_gps_accuracy_m).toBeNull();
     expect(r.data.job.status).toBe('PENDING_REVIEW');
   });
@@ -231,19 +232,31 @@ describe('After capture and verification', () => {
     expect(r.data.job.status).toBe('NEEDS_RECAPTURE');
     expect(w.b.call('reviewJob', { id: job.id, decision: 'APPROVE', reason: 'looks fine' }, w.reviewer).error?.code).toBe('INVALID_STATE');
   });
-  it('After GPS accuracy above 3 m is still a FAIL', () => {
+  it('After GPS accuracy is recorded but is not a criterion (rules v3)', () => {
     const { job } = jobReadyForAfter(w);
-    const r = w.b.call('submitCapture', afterPayload(job.id, { accuracy_m: 4.2 }), w.inspector);
-    expect(r.data.verification.overall_status).toBe('FAIL');
-    expect(r.data.verification.failure_reasons.find((x: { code: string }) => x.code === 'ACCURACY_EXCEEDED')?.capture).toBe('AFTER');
+    const r = w.b.call('submitCapture', afterPayload(job.id, { accuracy_m: 8 }), w.inspector);
+    expect(r.data.verification.overall_status).toBe('PASS');
+    expect(r.data.verification.after_accuracy_m).toBe(8);
   });
-  it('a Before reference with poor accuracy can still PASS when After matches (warning kept)', () => {
+  it('a Before photo with poor accuracy still PASSes when the After matches', () => {
     const job = createJob(w);
     w.b.call('submitCapture', capturePayload(job.id, 'BEFORE', { accuracy_m: 7 }), w.inspector);
     w.b.call('markRepairDone', { id: job.id }, w.inspector);
     const r = w.b.call('submitCapture', afterPayload(job.id), w.inspector);
     expect(r.data.verification.overall_status).toBe('PASS');
-    expect(r.data.verification.failure_reasons.map((x: { code: string; severity: string }) => `${x.code}:${x.severity}`)).toContain('REFERENCE_ACCURACY_LOW:WARNING');
+  });
+  it('distance limit is 1 m: 0.95 m passes, 1.2 m fails', () => {
+    const { job } = jobReadyForAfter(w);
+    const far = w.b.call('submitCapture', afterPayload(job.id, northOf(ORIGIN, 1.2)), w.inspector);
+    expect(far.data.verification.overall_status).toBe('FAIL');
+    expect(far.data.verification.failure_reasons.map((x: { code: string }) => x.code)).toContain('DISTANCE_EXCEEDED');
+    const near = w.b.call('submitCapture', afterPayload(job.id, northOf(ORIGIN, 0.95)), w.inspector);
+    expect(near.data.verification.overall_status).toBe('PASS');
+  });
+  it('heading limit is ±10°: 10° passes, 11° fails (either side)', () => {
+    const { job } = jobReadyForAfter(w); // Before heading 125°
+    expect(w.b.call('submitCapture', afterPayload(job.id, { heading_deg: 114 }), w.inspector).data.verification.overall_status).toBe('FAIL');
+    expect(w.b.call('submitCapture', afterPayload(job.id, { heading_deg: 135 }), w.inspector).data.verification.overall_status).toBe('PASS');
   });
   it('missing After heading gives INSUFFICIENT_DATA (not PASS)', () => {
     const { job } = jobReadyForAfter(w);
@@ -377,7 +390,7 @@ describe('evidence access, corrections and audit', () => {
   });
   it('does not allow editing thresholds at runtime', () => {
     expect(w.b.call('updateSetting', { key: 'max_distance_m', value: '10' }, w.admin).error?.code).toBe('VALIDATION_ERROR');
-    expect(w.b.call('getSettings', {}, w.inspector).data.rules.maxDistanceM).toBe(3);
+    expect(w.b.call('getSettings', {}, w.inspector).data.rules.maxDistanceM).toBe(1);
   });
   it('returns a generic error for unknown actions and malformed bodies', () => {
     expect(w.b.call('dropTables', {}, w.admin).error?.code).toBe('UNKNOWN_ACTION');
