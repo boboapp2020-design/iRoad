@@ -182,9 +182,10 @@ export function createBackend(opts: { fileOrder?: (names: string[]) => string[] 
   };
   vm.createContext(ctx);
   const dist = join(dirname(fileURLToPath(import.meta.url)), '../../apps-script/dist');
-  if (opts.fileOrder) {
-    const names = opts.fileOrder(readdirSync(join(dist, 'files')).filter((n) => n.endsWith('.gs')).sort());
-    for (const n of names) vm.runInContext(readFileSync(join(dist, 'files', n), 'utf8'), ctx, { filename: n });
+  const filesDir = process.env.RR_FILES_DIR || join(dist, 'files');
+  if (opts.fileOrder || process.env.RR_FILES_DIR) {
+    const names = (opts.fileOrder ?? ((n: string[]) => n))(readdirSync(filesDir).filter((n) => n.endsWith('.gs')).sort());
+    for (const n of names) vm.runInContext(readFileSync(join(filesDir, n), 'utf8'), ctx, { filename: n });
   } else {
     vm.runInContext(readFileSync(join(dist, 'Code.gs'), 'utf8'), ctx, { filename: 'Code.gs' });
   }
