@@ -114,6 +114,22 @@ describe('jobs and permissions', () => {
     expect(w.b.call('cancelJob', { id: job.id, reason: 'Duplicate report' }, w.admin).data.job.status).toBe('CANCELLED');
     expect(w.b.call('cancelJob', { id: job.id, reason: 'again' }, w.admin).error?.code).toBe('INVALID_TRANSITION');
   });
+  it('upgrades a sheet created before newer columns were appended (no SCHEMA_MISMATCH)', () => {
+    const job = createJob(w);
+    const sh = w.b.sheet('repair_jobs');
+    const at = sh.data[0].indexOf('deleted_at');
+    for (const row of sh.data) row.length = at; // older schema: trailing columns absent
+    const r = w.b.call('listJobs', {}, w.inspector);
+    expect(r.ok).toBe(true);
+    expect(r.data.jobs.map((j: { id: string }) => j.id)).toEqual([job.id]);
+    expect(sh.data[0].slice(at)).toEqual(['deleted_at', 'deleted_by', 'delete_reason']);
+    expect(w.b.call('deleteJob', { id: job.id, reason: 'Duplicate report' }, w.inspector).ok).toBe(true);
+  });
+  it('still refuses a sheet whose existing headers were changed', () => {
+    createJob(w);
+    w.b.sheet('repair_jobs').data[0][1] = 'something_else';
+    expect(w.b.call('listJobs', {}, w.inspector).error?.code).toBe('SCHEMA_MISMATCH');
+  });
   it('reports dashboard counts scoped to the caller', () => {
     createJob(w);
     createJob(w, w.inspector2);

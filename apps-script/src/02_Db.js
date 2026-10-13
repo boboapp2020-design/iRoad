@@ -27,6 +27,23 @@ var Db = (function () {
     return SCHEMA[name].columns;
   }
 
+  /**
+   * A newer schema may append columns to a sheet created by an older version
+   * (e.g. deleted_at/deleted_by/delete_reason). When the existing headers match
+   * and only trailing header cells are empty, write the missing names in place
+   * so the sheet upgrades itself without re-running setup(). Anything else is
+   * left for the strict check to reject.
+   */
+  function upgradeHeader(sh, name, cols, header) {
+    var c = 0;
+    while (c < cols.length && header[c] === cols[c]) c++;
+    if (c === cols.length || c === 0) return;
+    for (var k = c; k < cols.length; k++) if (header[k] !== '') return;
+    var missing = cols.slice(c);
+    sh.getRange(1, c + 1, 1, missing.length).setValues([missing]);
+    for (var j = c; j < cols.length; j++) header[j] = cols[j];
+  }
+
   function all(name) {
     if (cache_[name]) return cache_[name];
     var sh = sheet(name);
@@ -35,6 +52,7 @@ var Db = (function () {
     var rows = [];
     if (last >= 2) {
       var header = sh.getRange(1, 1, 1, cols.length).getValues()[0].map(fromCell);
+      upgradeHeader(sh, name, cols, header);
       for (var c = 0; c < cols.length; c++) {
         if (header[c] !== cols[c]) fail('SCHEMA_MISMATCH', 'Sheet "' + name + '" column ' + (c + 1) + ' should be "' + cols[c] + '"');
       }
