@@ -94,7 +94,7 @@ export const en: Dictionary = {
     headingVertical: 'Camera points too far up/down. Raise the device slightly.', headingPermission: 'Tap to allow the orientation sensor',
     calibrate: 'Calibrate the compass: move the phone in a figure-8 two or three times, away from metal and vehicles.',
     cameraDenied: 'Camera permission denied', cameraUnavailable: 'No usable camera found', cameraInterrupted: 'Camera stopped. Tap to restart.',
-    capture: 'Capture', recheckFailed: 'Measurements changed during capture. Please retry.', review: 'Review before saving', retake: 'Retake',
+    slowCapture: 'The camera took too long. Please capture again.', captureFailed: 'Capture failed', headingRelativeOnly: 'This browser has no compass (e.g. opened inside LINE/Facebook) — open the link in Chrome or Safari', capture: 'Capture', recheckFailed: 'Measurements changed during capture. Please retry.', review: 'Review before saving', retake: 'Retake',
     saveBefore: 'Save', submitAfter: 'Confirm and save After photo', uploading: 'Uploading and verifying on the server...',
     uploadFailed: 'Upload failed. The photo is still on this device — tap "Retry" (safe to resend).',
     uploadUnknown: 'Not sure the server received it. Tap "Retry" — it will not be saved twice.',

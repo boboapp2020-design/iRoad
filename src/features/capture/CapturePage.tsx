@@ -31,6 +31,7 @@ interface Captured {
   height: number;
   measurement: ReturnType<typeof measurementFrom>;
   fixTimeSource: string;
+  positionSamples: number;
   distanceM: number | null;
   headingDiffDeg: number | null;
 }
@@ -113,10 +114,9 @@ export function CapturePage() {
       const snapshot = measurementFrom(geo.fixRef.current, heading.readingRef.current, t0);
       // 2) Capture from the live camera track.
       const shot = await camera.capture();
-      // 3) Re-check again afterwards; discard if anything drifted or capture was slow.
-      const t1 = Date.now();
-      const post = evaluateGate({ mode: captureType, fix: geo.fixRef.current, heading: heading.readingRef.current, headingStatus: heading.status, now: t1, rules, before });
-      if (!post.ready || t1 - t0 > MAX_CAPTURE_DURATION_MS) throw new Error('RECHECK');
+      // 3) The measurement recorded is the one taken at the shutter press (above);
+      //    small jitter afterwards must not discard a correct photo. The server re-verifies it.
+      if (Date.now() - t0 > MAX_CAPTURE_DURATION_MS) throw new Error('SLOW_CAPTURE');
       const buf = await shot.blob.arrayBuffer();
       const hash = await sha256Hex(buf);
       setCaptured({
@@ -129,12 +129,19 @@ export function CapturePage() {
         height: shot.height,
         measurement: snapshot,
         fixTimeSource: geo.fixRef.current?.timeSource ?? 'unknown',
+        positionSamples: geo.fixRef.current?.sampleCount ?? 0,
         distanceM: pre.distanceM,
         headingDiffDeg: pre.headingDiffDeg,
       });
       setPhase('review');
     } catch (e) {
-      setCaptureError((e as Error).message === 'RECHECK' ? t('capture.recheckFailed') : t('capture.cameraInterrupted'));
+      const code = (e as Error).message;
+      setCaptureError(
+        code === 'RECHECK' ? t('capture.recheckFailed')
+          : code === 'SLOW_CAPTURE' ? t('capture.slowCapture')
+          : code === 'CAMERA_NOT_LIVE' || code === 'CAMERA_NOT_READY' ? t('capture.cameraInterrupted')
+          : `${t('capture.captureFailed')} (${code || 'unknown'})`,
+      );
     } finally {
       setCapturing(false);
     }
@@ -156,6 +163,9 @@ export function CapturePage() {
           camera: camera.info,
           image: { width: captured.width, height: captured.height },
           fix_time_source: captured.fixTimeSource,
+          position_method: 'accuracy_weighted_mean_5s',
+          position_samples: captured.positionSamples,
+          heading_platform_accuracy_deg: heading.readingRef.current?.platformAccuracyDeg ?? null,
           heading_samples: heading.reading?.sampleCount ?? null,
         }),
         measurement: toPayload(captured.measurement),

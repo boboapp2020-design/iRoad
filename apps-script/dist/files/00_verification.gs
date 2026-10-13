@@ -162,7 +162,7 @@ var RRVerify = (() => {
     const spread = Math.sqrt(-2 * Math.log(R)) * 180 / Math.PI;
     return { meanDeg: mean, spreadDeg: spread };
   }
-  function cameraHeadingFromOrientation(o, minHorizontalComponent = 0.25) {
+  function cameraHeadingFromOrientation(o, minHorizontalComponent = 0.15) {
     if (!o || !isFiniteNumber(o.alpha) || !isFiniteNumber(o.beta) || !isFiniteNumber(o.gamma)) {
       return { headingDeg: null, reason: "ORIENTATION_MISSING" };
     }

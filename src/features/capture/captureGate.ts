@@ -116,7 +116,9 @@ export function evaluateGate(input: GateInput): GateResult {
 
   // Heading
   let headingDiffDeg: number | null = null;
-  if (headingStatus === 'unavailable' || headingStatus === 'denied') {
+  if (headingStatus === 'relative-only') {
+    checks.push({ key: 'heading', state: 'bad', message: 'capture.headingRelativeOnly' });
+  } else if (headingStatus === 'unavailable' || headingStatus === 'denied') {
     checks.push({ key: 'heading', state: 'bad', message: 'capture.headingUnavailable' });
   } else if (headingStatus === 'needs-permission') {
     checks.push({ key: 'heading', state: 'waiting', message: 'capture.headingPermission' });

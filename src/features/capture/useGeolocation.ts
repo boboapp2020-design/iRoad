@@ -8,6 +8,38 @@ export interface GeoFix {
   timestamp: number;
   /** 'device' = Position.timestamp; 'receipt' = callback time (device timestamp implausible). */
   timeSource: 'device' | 'receipt';
+  /** How many raw GPS readings were averaged into this position (1 = a single reading). */
+  sampleCount: number;
+}
+
+/** Raw readings from the last few seconds are averaged so normal GPS jitter does not make the position jump. */
+const SMOOTHING_WINDOW_MS = 5000;
+
+/**
+ * Accuracy-weighted mean of recent readings. The reported accuracy is the
+ * plain mean of the readings' accuracies (never smaller than the inputs
+ * suggest), and the timestamp is that of the newest reading.
+ */
+export function smoothFixes(raw: GeoFix[]): GeoFix | null {
+  if (!raw.length) return null;
+  const newest = raw[raw.length - 1];
+  const recent = raw.filter((f) => newest.timestamp - f.timestamp <= SMOOTHING_WINDOW_MS);
+  let wSum = 0, lat = 0, lng = 0, acc = 0;
+  for (const f of recent) {
+    const w = 1 / Math.max(f.accuracy, 0.5) ** 2;
+    wSum += w;
+    lat += f.latitude * w;
+    lng += f.longitude * w;
+    acc += f.accuracy;
+  }
+  return {
+    latitude: lat / wSum,
+    longitude: lng / wSum,
+    accuracy: acc / recent.length,
+    timestamp: newest.timestamp,
+    timeSource: newest.timeSource,
+    sampleCount: recent.length,
+  };
 }
 
 /** Request a fresh fix when the latest one is older than this (freshness limit is 10 s). */
@@ -23,6 +55,7 @@ export function useGeolocation(enabled: boolean) {
   const [status, setStatus] = useState<GeoStatus>('idle');
   const [fix, setFix] = useState<GeoFix | null>(null);
   const fixRef = useRef<GeoFix | null>(null);
+  const rawRef = useRef<GeoFix[]>([]);
   const watchId = useRef<number | null>(null);
   const [attempt, setAttempt] = useState(0);
 
@@ -38,9 +71,13 @@ export function useGeolocation(enabled: boolean) {
       if (![latitude, longitude, accuracy].every(Number.isFinite)) return;
       const now = Date.now();
       const plausible = Number.isFinite(pos.timestamp) && Math.abs(pos.timestamp - now) < 60_000;
-      const next: GeoFix = { latitude, longitude, accuracy, timestamp: plausible ? pos.timestamp : now, timeSource: plausible ? 'device' : 'receipt' };
-      // Ignore an older reading arriving after a newer one.
-      if (fixRef.current && next.timestamp < fixRef.current.timestamp) return;
+      const reading: GeoFix = { latitude, longitude, accuracy, timestamp: plausible ? pos.timestamp : now, timeSource: plausible ? 'device' : 'receipt', sampleCount: 1 };
+      const raw = rawRef.current;
+      // Ignore an older or duplicate reading arriving after a newer one.
+      if (raw.length && reading.timestamp <= raw[raw.length - 1].timestamp) return;
+      raw.push(reading);
+      rawRef.current = raw.filter((f) => reading.timestamp - f.timestamp <= SMOOTHING_WINDOW_MS);
+      const next = smoothFixes(rawRef.current)!;
       fixRef.current = next;
       setFix(next);
       setStatus('ok');
@@ -74,6 +111,7 @@ export function useGeolocation(enabled: boolean) {
 
   const retry = useCallback(() => {
     fixRef.current = null;
+    rawRef.current = [];
     setFix(null);
     setAttempt((a) => a + 1);
   }, []);

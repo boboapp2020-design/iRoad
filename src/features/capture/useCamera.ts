@@ -5,7 +5,11 @@ export type CaptureMethod = 'image_capture_api' | 'video_frame_canvas';
 
 interface ImageCaptureLike {
   takePhoto(settings?: Record<string, unknown>): Promise<Blob>;
+  getPhotoCapabilities?(): Promise<{ imageWidth?: { min: number; max: number; step?: number } }>;
 }
+
+/** Largest photo width we request from ImageCapture (keeps files ~1–3 MB). */
+const MAX_PHOTO_WIDTH = 2560;
 declare const ImageCapture: { new (track: MediaStreamTrack): ImageCaptureLike } | undefined;
 
 /**
@@ -34,7 +38,8 @@ export function useCamera(videoRef: RefObject<HTMLVideoElement | null>, enabled:
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: { facingMode: { ideal: 'environment' }, width: { ideal: 3840 }, height: { ideal: 2160 } },
+        // ~5 MP is plenty for road evidence and keeps uploads fast on mobile data.
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 2560 }, height: { ideal: 1920 } },
       });
       streamRef.current = stream;
       const track = stream.getVideoTracks()[0];
@@ -73,7 +78,16 @@ export function useCamera(videoRef: RefObject<HTMLVideoElement | null>, enabled:
     if (!track || track.readyState !== 'live') throw new Error('CAMERA_NOT_LIVE');
     if (typeof ImageCapture !== 'undefined') {
       try {
-        const blob = await new ImageCapture(track).takePhoto();
+        const ic = new ImageCapture(track);
+        let settings: Record<string, unknown> | undefined;
+        try {
+          const caps = await ic.getPhotoCapabilities?.();
+          const w = caps?.imageWidth;
+          if (w && w.max > MAX_PHOTO_WIDTH && w.min <= MAX_PHOTO_WIDTH) settings = { imageWidth: MAX_PHOTO_WIDTH };
+        } catch {
+          settings = undefined;
+        }
+        const blob = await ic.takePhoto(settings);
         if (blob && blob.size > 0 && /^image\/(jpeg|png|webp)$/.test(blob.type)) {
           const dims = await imageSize(blob).catch(() => ({ width: 0, height: 0 }));
           return { blob, method: 'image_capture_api', ...dims };

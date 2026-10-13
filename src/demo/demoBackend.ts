@@ -15,11 +15,14 @@ export const DEMO_ACCOUNTS = [
 export const DEMO_PASSWORD = 'Demo123456';
 
 const enc = new TextEncoder();
-const signed = (u: Uint8Array) => Array.from(u, (b) => (b > 127 ? b - 256 : b));
+// Apps Script byte arrays are signed Java bytes. Int8Array has the same values and
+// indexing but uses 1 byte per element (a plain Array of numbers used ~8x more memory).
+const signed = (u: Uint8Array) => new Int8Array(u.buffer, u.byteOffset, u.byteLength);
 const unsigned = (input: unknown): Uint8Array => {
   if (typeof input === 'string') return enc.encode(input);
-  if (Array.isArray(input)) return Uint8Array.from(input, (b: number) => b & 0xff);
+  if (input instanceof Int8Array) return new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
   if (input instanceof Uint8Array) return input;
+  if (Array.isArray(input)) return Uint8Array.from(input, (b: number) => b & 0xff);
   throw new Error('Unsupported byte input');
 };
 function b64encode(bytes: Uint8Array): string {
@@ -106,8 +109,13 @@ function buildRuntime(state: State, cache: Map<string, string>) {
       Charset: { UTF_8: 'UTF_8' },
       computeDigest: (_a: string, input: unknown) => signed(sha256(unsigned(input))),
       computeHmacSha256Signature: (value: unknown, key: unknown) => signed(hmacSha256(unsigned(key), unsigned(value))),
-      base64Decode: (s: string) => { const bin = atob(s); return signed(Uint8Array.from(bin, (ch) => ch.charCodeAt(0))); },
-      base64Encode: (bytes: number[]) => b64encode(unsigned(bytes)),
+      base64Decode: (s: string) => {
+        const bin = atob(s);
+        const out = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+        return signed(out);
+      },
+      base64Encode: (bytes: unknown) => b64encode(unsigned(bytes)),
       newBlob: (data: unknown, type?: string, name?: string) => blob(unsigned(data), type, name),
       getUuid: () => crypto.randomUUID(),
     },

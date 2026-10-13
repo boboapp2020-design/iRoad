@@ -2,12 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { cameraHeadingFromOrientation, circularStats } from '@verification';
 
 export type HeadingSource = 'android_absolute_orientation' | 'absolute_device_orientation' | 'ios_webkit_compass';
-export type HeadingStatus = 'idle' | 'needs-permission' | 'waiting' | 'ok' | 'vertical' | 'unavailable' | 'denied';
+export type HeadingStatus = 'idle' | 'needs-permission' | 'waiting' | 'ok' | 'vertical' | 'unavailable' | 'relative-only' | 'denied';
 
 export interface HeadingReading {
   headingDeg: number;
-  /** Circular spread of recent samples, or the platform accuracy if larger. */
+  /** Circular spread (std. dev.) of the last second of samples — how steady the reading is. */
   uncertaintyDeg: number;
+  /** iOS webkitCompassAccuracy (degrees) when available; recorded, not used to block capture. */
+  platformAccuracyDeg: number | null;
   measuredAt: number;
   source: HeadingSource;
   sampleCount: number;
@@ -60,6 +62,7 @@ export function useHeading(enabled: boolean) {
     setStatus('waiting');
     let lastAny = 0;
     let lastPublish = 0;
+    let sawRelativeOnly = false;
 
     const push = (h: number, source: HeadingSource, acc?: number) => {
       const t = Date.now();
@@ -70,10 +73,11 @@ export function useHeading(enabled: boolean) {
       lastPublish = t;
       const stats = circularStats(samples.current.map((s) => s.h));
       if (!stats) return;
-      const platformAcc = samples.current.reduce((m, s) => (s.acc !== undefined && s.acc >= 0 ? Math.max(m, s.acc) : m), 0);
+      const accs = samples.current.map((s) => s.acc).filter((a): a is number => a !== undefined && a >= 0);
       const next: HeadingReading = {
         headingDeg: stats.meanDeg,
-        uncertaintyDeg: Math.max(stats.spreadDeg, platformAcc),
+        uncertaintyDeg: stats.spreadDeg,
+        platformAccuracyDeg: accs.length ? Math.max(...accs) : null,
         measuredAt: t,
         source,
         sampleCount: samples.current.length,
@@ -105,6 +109,7 @@ export function useHeading(enabled: boolean) {
         push(ios.webkitCompassHeading % 360, 'ios_webkit_compass', ios.webkitCompassAccuracy);
         return;
       }
+      if (!e.absolute && e.alpha !== null) sawRelativeOnly = true; // e.g. LINE / Facebook in-app browsers
       if (e.absolute && e.alpha !== null && e.beta !== null && e.gamma !== null) {
         const r = cameraHeadingFromOrientation({ alpha: e.alpha, beta: e.beta, gamma: e.gamma });
         if (r.headingDeg === null) markVertical();
@@ -121,7 +126,7 @@ export function useHeading(enabled: boolean) {
       if (now - lastAny > UNAVAILABLE_AFTER_MS) {
         readingRef.current = null;
         setReading(null);
-        setStatus('unavailable');
+        setStatus(sawRelativeOnly ? 'relative-only' : 'unavailable');
       }
     }, 1000);
 

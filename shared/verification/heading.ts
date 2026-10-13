@@ -74,7 +74,7 @@ export interface OrientationAngles {
  */
 export function cameraHeadingFromOrientation(
   o: Partial<OrientationAngles> | null | undefined,
-  minHorizontalComponent = 0.25,
+  minHorizontalComponent = 0.15,
 ): { headingDeg: number; tiltFromHorizontalDeg: number } | { headingDeg: null; reason: string } {
   if (!o || !isFiniteNumber(o.alpha) || !isFiniteNumber(o.beta) || !isFiniteNumber(o.gamma)) {
     return { headingDeg: null, reason: 'ORIENTATION_MISSING' };
