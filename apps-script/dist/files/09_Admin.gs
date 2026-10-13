@@ -117,6 +117,41 @@ function actionUpdateSetting(p, ctx) {
   });
 }
 
+/* ------------------------------------------------------------- purge */
+
+/** Confirmation phrase the admin must type to erase every repair record. */
+var PURGE_CONFIRM_PHRASES = ['ลบทั้งหมด', 'DELETE ALL'];
+var PURGE_TABLES = ['repair_jobs', 'repair_photos', 'verification_results', 'repair_reviews'];
+
+/**
+ * Admin only: erase every repair job, photo record, verification and review,
+ * and move the evidence files to the Drive trash (recoverable there for 30
+ * days). Users, settings and the audit log are kept; the purge itself is
+ * written to the audit log. Job codes keep counting up so old codes are never
+ * reused.
+ */
+function actionPurgeRepairData(p, ctx) {
+  requireRole(ctx.user, ['admin']);
+  var confirm = reqString(p, 'confirm', { max: 50 });
+  if (PURGE_CONFIRM_PHRASES.indexOf(confirm.trim()) < 0) fail('VALIDATION_ERROR', 'Type the confirmation phrase exactly.');
+  var reason = reqString(p, 'reason', { min: 5, max: LIMITS.maxTextLength });
+  return withLock(function () {
+    var trashed = 0;
+    var trashFailed = 0;
+    Db.all('repair_photos').forEach(function (ph) {
+      if (!ph.drive_file_id) return;
+      try { DriveApp.getFileById(ph.drive_file_id).setTrashed(true); trashed++; } catch (e) { trashFailed++; }
+    });
+    var counts = {};
+    PURGE_TABLES.forEach(function (t) { counts[t] = Db.clearAll(t); });
+    writeAudit({
+      actor_id: ctx.user.id, action: 'data.purged', entity_type: 'system',
+      details: { reason: reason, rows: counts, files_trashed: trashed, files_not_trashed: trashFailed }
+    });
+    return { rows: counts, files_trashed: trashed, files_not_trashed: trashFailed };
+  });
+}
+
 /* ------------------------------------------------------------- audit */
 
 function actionListAudit(p, ctx) {

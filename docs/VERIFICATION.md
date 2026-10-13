@@ -1,6 +1,12 @@
-# Verification rules (current: `rr-verify-v3`)
+# Verification rules (current: `rr-verify-v4`)
 
-> **v3 (current), decided by the project owner:** GPS accuracy is **not a criterion** for either photo. It is
+> **v4 (current), decided by the project owner:** same as v3, but the After photo must be **≤ 5 m** from the Before
+> position (was 1 m). Field tests showed that a phone standing on the same spot drifts 3–5 m, so 1 m failed correct
+> photos. Heading stays **±10°**. To get the exact framing the camera shows the Before photo as a semi-transparent
+> overlay, and the app stores an image-similarity score (0–100) in the After photo's device metadata. The score is a
+> client-side aid for the reviewer, **not** a pass/fail criterion and not tamper-proof.
+
+> **v3, decided by the project owner:** GPS accuracy is **not a criterion** for either photo. It is
 > still recorded and shown. The Before photo can be taken anywhere. The After photo must be **≤ 1 m** from the
 > Before position and its heading must be within **±10°** of the Before heading. Both photos still need coordinates,
 > a reliable heading and readings no older than 10 s.

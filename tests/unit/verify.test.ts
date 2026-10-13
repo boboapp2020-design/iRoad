@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CURRENT_RULES, deriveStatus, EARTH_RADIUS_M, evaluateCapture, isCaptureAcceptable, RULES_V1, RULES_V2, RULES_V3, verifyCapturePair } from '@verification';
+import { CURRENT_RULES, deriveStatus, EARTH_RADIUS_M, evaluateCapture, isCaptureAcceptable, RULES_V1, RULES_V2, RULES_V3, RULES_V4, verifyCapturePair } from '@verification';
 import { baseAfter, baseBefore } from './fixtures';
 
 describe('verifyCapturePair status rules', () => {
@@ -93,10 +93,24 @@ describe('rules v2: Before can be taken anywhere', () => {
   });
 });
 
-describe('rules v3 (current): no accuracy criterion, 1 m and ±10°', () => {
+describe('rules v4 (current): 5 m and ±10°', () => {
   const north = (m: number) => ({ latitude: baseBefore().latitude + (m / EARTH_RADIUS_M) * (180 / Math.PI), longitude: baseBefore().longitude });
   it('is the current rules version', () => {
-    expect(CURRENT_RULES).toBe(RULES_V3);
+    expect(CURRENT_RULES).toBe(RULES_V4);
+    expect(RULES_V4).toMatchObject({ version: 'rr-verify-v4', maxGpsAccuracyM: null, maxBeforeGpsAccuracyM: null, maxDistanceM: 5, maxHeadingDifferenceDeg: 10 });
+  });
+  it('passes within 5 m and fails beyond 5 m', () => {
+    expect(verifyCapturePair(baseBefore(), { ...baseAfter(), ...north(4.9) }, RULES_V4).overallStatus).toBe('PASS');
+    expect(verifyCapturePair(baseBefore(), { ...baseAfter(), ...north(5.2) }, RULES_V4).overallStatus).toBe('FAIL');
+  });
+  it('stored v3 verifications keep their 1 m limit', () => {
+    expect(verifyCapturePair(baseBefore(), { ...baseAfter(), ...north(3) }, RULES_V3).overallStatus).toBe('FAIL');
+  });
+});
+
+describe('rules v3: no accuracy criterion, 1 m and ±10°', () => {
+  const north = (m: number) => ({ latitude: baseBefore().latitude + (m / EARTH_RADIUS_M) * (180 / Math.PI), longitude: baseBefore().longitude });
+  it('defines 1 m', () => {
     expect(RULES_V3).toMatchObject({ version: 'rr-verify-v3', maxGpsAccuracyM: null, maxBeforeGpsAccuracyM: null, maxDistanceM: 1, maxHeadingDifferenceDeg: 10 });
   });
   it('ignores GPS accuracy (even missing) for both photos', () => {

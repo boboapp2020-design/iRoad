@@ -33,7 +33,7 @@ export const th = {
     NEEDS_RECAPTURE: 'ต้องถ่ายหลังซ่อมใหม่', CANCELLED: 'ยกเลิก', DELETED: 'ถูกลบ',
   },
   verification: {
-    PASS: 'ผ่านเกณฑ์', FAIL: 'ไม่ผ่านเกณฑ์', INSUFFICIENT_DATA: 'ข้อมูลไม่เพียงพอ', PENDING: 'ยังไม่ได้ตรวจสอบ',
+    similarity: 'ความเหมือนของภาพ (ช่วยดู ไม่ใช่เกณฑ์)', PASS: 'ผ่านเกณฑ์', FAIL: 'ไม่ผ่านเกณฑ์', INSUFFICIENT_DATA: 'ข้อมูลไม่เพียงพอ', PENDING: 'ยังไม่ได้ตรวจสอบ',
     PASS_desc: 'ทุกเงื่อนไขผ่านเกณฑ์ที่กำหนด', FAIL_desc: 'มีค่าที่วัดได้อย่างน้อยหนึ่งค่าเกินเกณฑ์',
     INSUFFICIENT_DATA_desc: 'ข้อมูลที่จำเป็นขาดหายหรือไม่น่าเชื่อถือ จึงยืนยันไม่ได้',
     PENDING_desc: 'ยังไม่มีผลตรวจสอบจากเซิร์ฟเวอร์',
@@ -86,7 +86,7 @@ export const th = {
     deleteJob: 'ลบรายการซ่อม', deleteReason: 'เหตุผลในการลบ (อย่างน้อย 5 ตัวอักษร) — จะถูกบันทึกใน log', deletedBanner: 'รายการนี้ถูกลบโดย {by} เมื่อ {at}', deletedReason: 'เหตุผล: {r}', deletedKept: 'รูปและข้อมูลหลักฐานยังเก็บไว้เพื่อการตรวจสอบ', deleted: 'ลบรายการแล้ว',
   },
   capture: {
-    openCamera: 'เปิดกล้อง', introLead: 'แอปจะขอใช้ 3 อย่างนี้ กด "อนุญาต" เมื่อมือถือถาม', beforeSavedNext: 'ขั้นต่อไป: ซ่อมให้เสร็จ แล้วกด "ซ่อมเสร็จแล้ว" ในหน้างาน', inRange: 'อยู่ในเกณฑ์', outOfRange: 'ยังไม่อยู่ในเกณฑ์', measuring: 'กำลังวัด...', cardDistance: 'ห่างจุดเดิม {v} ม.', cardDistanceWait: 'กำลังหาระยะ', cardHeading: 'ทิศ {v}°', cardHeadingDiff: 'ต่างจากเดิม {d}°', resultTitle: 'ผลการตรวจสอบ', result_PASS: 'ส่งให้ผู้ตรวจรับแล้ว', result_FAIL: 'ตำแหน่งหรือทิศไม่ตรงจุดเดิม ต้องถ่ายใหม่', result_INSUFFICIENT_DATA: 'ข้อมูลไม่พอให้ยืนยัน ต้องถ่ายใหม่', result_PENDING: 'รอผลจากเซิร์ฟเวอร์', beforeTitle: 'ถ่ายภาพก่อนซ่อม', afterTitle: 'ถ่ายภาพหลังซ่อม', requestPermissions: 'อนุญาตกล้อง ตำแหน่ง และเข็มทิศ',
+    ghostOn: 'ภาพเดิม: เปิด', ghostOff: 'ภาพเดิม: ปิด', similarityLive: 'ภาพตรงกัน {v}%', ghostTip: 'จัดมุมกล้องให้ภาพสดทับภาพเดิมที่จางๆ ให้พอดี', openCamera: 'เปิดกล้อง', introLead: 'แอปจะขอใช้ 3 อย่างนี้ กด "อนุญาต" เมื่อมือถือถาม', beforeSavedNext: 'ขั้นต่อไป: ซ่อมให้เสร็จ แล้วกด "ซ่อมเสร็จแล้ว" ในหน้างาน', inRange: 'อยู่ในเกณฑ์', outOfRange: 'ยังไม่อยู่ในเกณฑ์', measuring: 'กำลังวัด...', cardDistance: 'ห่างจุดเดิม {v} ม.', cardDistanceWait: 'กำลังหาระยะ', cardHeading: 'ทิศ {v}°', cardHeadingDiff: 'ต่างจากเดิม {d}°', resultTitle: 'ผลการตรวจสอบ', result_PASS: 'ส่งให้ผู้ตรวจรับแล้ว', result_FAIL: 'ตำแหน่งหรือทิศไม่ตรงจุดเดิม ต้องถ่ายใหม่', result_INSUFFICIENT_DATA: 'ข้อมูลไม่พอให้ยืนยัน ต้องถ่ายใหม่', result_PENDING: 'รอผลจากเซิร์ฟเวอร์', beforeTitle: 'ถ่ายภาพก่อนซ่อม', afterTitle: 'ถ่ายภาพหลังซ่อม', requestPermissions: 'อนุญาตกล้อง ตำแหน่ง และเข็มทิศ',
     permissionsIntro: 'แอปต้องใช้กล้องหลัง GPS ความแม่นยำสูง และเซ็นเซอร์ทิศทาง เพื่อบันทึกหลักฐานที่ตรวจสอบได้',
     criteria: 'เกณฑ์ก่อนถ่ายภาพ', critAccuracy: 'GPS accuracy ≤ {v} ม.', critDistance: 'ห่างจากจุดเดิม ≤ {v} ม.',
     critHeading: 'ทิศทางต่างจากเดิม ≤ {v}°', critFresh: 'ข้อมูลตำแหน่งใหม่ไม่เกิน {v} วินาที',
@@ -130,7 +130,7 @@ export const th = {
     done: 'บันทึกผลการตรวจรับแล้ว',
   },
   admin: {
-    title: 'ผู้ดูแลระบบ', users: 'ผู้ใช้งาน', addUser: 'เพิ่มผู้ใช้', fullName: 'ชื่อ-นามสกุล', role: 'บทบาท', active: 'ใช้งาน',
+    purgeTitle: 'ล้างบันทึกการซ่อมทั้งหมด', purgeText: 'ลบงานซ่อม รูป ผลตรวจ และผลตรวจรับทั้งหมด เพื่อเริ่มใหม่ ผู้ใช้ การตั้งค่า และ audit log ยังอยู่ ไฟล์รูปจะถูกย้ายไปถังขยะของ Google Drive (กู้คืนได้ 30 วัน)', purgeReason: 'เหตุผล (อย่างน้อย 5 ตัวอักษร)', purgeType: 'พิมพ์คำว่า "{v}" เพื่อยืนยัน', purgePhrase: 'ลบทั้งหมด', purgeConfirm: 'ลบถาวร', purgeDone: 'ลบแล้ว: งาน {jobs} รายการ รูป {photos} รูป', title: 'ผู้ดูแลระบบ', users: 'ผู้ใช้งาน', addUser: 'เพิ่มผู้ใช้', fullName: 'ชื่อ-นามสกุล', role: 'บทบาท', active: 'ใช้งาน',
     tempPassword: 'รหัสผ่านชั่วคราว (แสดงครั้งเดียว): {v}', resetPassword: 'รีเซ็ตรหัสผ่าน', settings: 'การตั้งค่า',
     allowSelfApproval: 'อนุญาตให้อนุมัติงานของตัวเอง', sessionTtl: 'อายุการเข้าสู่ระบบ (ชั่วโมง)', thresholds: 'เกณฑ์การตรวจสอบ (แก้ไขไม่ได้)',
     audit: 'Audit log', verifyChain: 'ตรวจสอบความต่อเนื่องของ audit log', chainOk: 'Audit log ครบถ้วน ({n} รายการ)',

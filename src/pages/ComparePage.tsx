@@ -40,13 +40,16 @@ export function ComparePage() {
         [t('verification.headingDiff'), v.heading_difference_degrees == null ? '—' : `${fmtNum(v.heading_difference_degrees)}°`, v.heading_pass],
         [t('verification.gpsBefore'), t('common.meters', { v: fmtNum(v.before_accuracy_m) }), beforeLimit === null ? undefined : v.before_accuracy_m == null ? null : v.before_accuracy_m <= beforeLimit],
         [t('verification.gpsAfter'), t('common.meters', { v: fmtNum(v.after_accuracy_m) }), afterLimit === null ? undefined : v.after_accuracy_m == null ? null : v.after_accuracy_m <= afterLimit],
+        ...(typeof after?.device_metadata?.image_similarity_score === 'number'
+          ? [[t('verification.similarity'), `${after.device_metadata.image_similarity_score}%`, undefined] as [string, string, undefined]]
+          : []),
       ]
     : [];
 
   return (
-    <div>
+    <div className="min-h-full bg-paper">
       <PageHeader title={t('job.compare')} back={`/jobs/${id}`} />
-      <div className="space-y-4 p-4">
+      <div className="mx-auto max-w-3xl space-y-4 p-4">
         <div className="flex items-center justify-between">
           <div><div className="text-xl font-bold">{data.job.job_code}</div><div className="text-sm text-asphalt-500">{data.job.road_name}</div></div>
           <StatusBadge status={data.job.status} />

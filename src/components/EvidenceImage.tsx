@@ -14,6 +14,11 @@ export function clearEvidenceCache() {
   cache.clear();
 }
 
+/** Object URL for an evidence photo (shared cache with <EvidenceImage>). */
+export function loadEvidenceUrl(photoId: string, variant: 'thumb' | 'original' = 'original') {
+  return load(photoId, variant).then((r) => r.url);
+}
+
 function load(photoId: string, variant: 'thumb' | 'original') {
   const key = `${photoId}:${variant}`;
   let p = cache.get(key);

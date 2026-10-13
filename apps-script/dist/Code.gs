@@ -29,6 +29,7 @@ var RRVerify = (() => {
     RULES_V1: () => RULES_V1,
     RULES_V2: () => RULES_V2,
     RULES_V3: () => RULES_V3,
+    RULES_V4: () => RULES_V4,
     SUBMISSION_LIMITS: () => SUBMISSION_LIMITS,
     bearingDeg: () => bearingDeg,
     cameraHeadingFromOrientation: () => cameraHeadingFromOrientation,
@@ -74,7 +75,12 @@ var RRVerify = (() => {
     maxBeforeGpsAccuracyM: null,
     maxDistanceM: 1
   });
-  var CURRENT_RULES = RULES_V3;
+  var RULES_V4 = Object.freeze({
+    ...RULES_V3,
+    version: "rr-verify-v4",
+    maxDistanceM: 5
+  });
+  var CURRENT_RULES = RULES_V4;
   var SUBMISSION_LIMITS = Object.freeze({
     /** Captures older than this when they reach the server are rejected (ms). */
     maxSubmissionDelayMs: 15 * 6e4,
@@ -813,12 +819,27 @@ var Db = (function () {
     return row;
   }
 
+  /** Blank every data row of a table (headers stay). Returns how many rows held data. */
+  function clearAll(name) {
+    var count = all(name).length;
+    var sh = sheet(name);
+    var cols = columns(name);
+    var last = sh.getLastRow();
+    if (last >= 2) {
+      var blank = [];
+      for (var i = 0; i < last - 1; i++) blank.push(cols.map(function () { return ''; }));
+      sh.getRange(2, 1, last - 1, cols.length).setValues(blank);
+    }
+    cache_[name] = [];
+    return count;
+  }
+
   function reset() {
     cache_ = {};
     ss_ = null;
   }
 
-  return { spreadsheet: spreadsheet, sheet: sheet, all: all, find: find, filter: filter, byId: byId, insert: insert, update: update, reset: reset };
+  return { spreadsheet: spreadsheet, sheet: sheet, all: all, find: find, filter: filter, byId: byId, insert: insert, update: update, clearAll: clearAll, reset: reset };
 })();
 
 /** Run fn while holding the script-wide lock (serializes all writes). */
@@ -1942,6 +1963,41 @@ function actionUpdateSetting(p, ctx) {
   });
 }
 
+/* ------------------------------------------------------------- purge */
+
+/** Confirmation phrase the admin must type to erase every repair record. */
+var PURGE_CONFIRM_PHRASES = ['ลบทั้งหมด', 'DELETE ALL'];
+var PURGE_TABLES = ['repair_jobs', 'repair_photos', 'verification_results', 'repair_reviews'];
+
+/**
+ * Admin only: erase every repair job, photo record, verification and review,
+ * and move the evidence files to the Drive trash (recoverable there for 30
+ * days). Users, settings and the audit log are kept; the purge itself is
+ * written to the audit log. Job codes keep counting up so old codes are never
+ * reused.
+ */
+function actionPurgeRepairData(p, ctx) {
+  requireRole(ctx.user, ['admin']);
+  var confirm = reqString(p, 'confirm', { max: 50 });
+  if (PURGE_CONFIRM_PHRASES.indexOf(confirm.trim()) < 0) fail('VALIDATION_ERROR', 'Type the confirmation phrase exactly.');
+  var reason = reqString(p, 'reason', { min: 5, max: LIMITS.maxTextLength });
+  return withLock(function () {
+    var trashed = 0;
+    var trashFailed = 0;
+    Db.all('repair_photos').forEach(function (ph) {
+      if (!ph.drive_file_id) return;
+      try { DriveApp.getFileById(ph.drive_file_id).setTrashed(true); trashed++; } catch (e) { trashFailed++; }
+    });
+    var counts = {};
+    PURGE_TABLES.forEach(function (t) { counts[t] = Db.clearAll(t); });
+    writeAudit({
+      actor_id: ctx.user.id, action: 'data.purged', entity_type: 'system',
+      details: { reason: reason, rows: counts, files_trashed: trashed, files_not_trashed: trashFailed }
+    });
+    return { rows: counts, files_trashed: trashed, files_not_trashed: trashFailed };
+  });
+}
+
 /* ------------------------------------------------------------- audit */
 
 function actionListAudit(p, ctx) {
@@ -2080,7 +2136,8 @@ function authActions() {
   listAudit: actionListAudit,
   verifyAuditChain: actionVerifyAuditChain,
   invalidateEvidence: actionInvalidateEvidence,
-  checkEvidenceIntegrity: actionCheckEvidenceIntegrity
+  checkEvidenceIntegrity: actionCheckEvidenceIntegrity,
+  purgeRepairData: actionPurgeRepairData
   };
 }
 

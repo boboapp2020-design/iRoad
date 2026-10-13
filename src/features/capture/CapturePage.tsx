@@ -6,7 +6,8 @@ import { isInAppBrowser } from '@/lib/device';
 import { turnDelta } from '@/lib/workflow';
 import { VerificationBadge } from '@/components/badges';
 import { Compass } from '@/components/Compass';
-import { EvidenceImage } from '@/components/EvidenceImage';
+import { EvidenceImage, loadEvidenceUrl } from '@/components/EvidenceImage';
+import { signatureOf, signatureOfBlob, signatureOfUrl, similarityScore, type Signature } from './imageSimilarity';
 import { Alert, BottomBar, Button, CheckIcon, KeyValue, PageHeader, Spinner } from '@/components/ui';
 import { api, ApiError, type CaptureType, type SubmitCapturePayload, type Verification } from '@/lib/api';
 import { deviceMetadata } from '@/lib/device';
@@ -37,6 +38,7 @@ interface Captured {
   positionSamples: number;
   distanceM: number | null;
   headingDiffDeg: number | null;
+  similarity: number | null;
 }
 
 export function CapturePage() {
@@ -88,6 +90,34 @@ export function CapturePage() {
   const before = detail.data?.photos.find((p) => p.id === job?.current_before_photo_id) ?? null;
   const rules = CURRENT_RULES;
 
+  // After photo: show the Before photo as a see-through overlay and score how alike the views are.
+  const [beforeUrl, setBeforeUrl] = useState<string | null>(null);
+  const [ghost, setGhost] = useState(true);
+  const [liveScore, setLiveScore] = useState<number | null>(null);
+  const beforeSig = useRef<Signature | null>(null);
+  const beforeId = captureType === 'AFTER' ? before?.id ?? null : null;
+  useEffect(() => {
+    if (!beforeId) return;
+    let alive = true;
+    loadEvidenceUrl(beforeId)
+      .then(async (url) => {
+        if (!alive) return;
+        setBeforeUrl(url);
+        beforeSig.current = await signatureOfUrl(url).catch(() => null);
+      })
+      .catch(() => undefined);
+    return () => { alive = false; };
+  }, [beforeId]);
+  useEffect(() => {
+    if (phase !== 'live' || !beforeId) return;
+    const id = setInterval(() => {
+      const v = videoRef.current;
+      if (!v || !v.videoWidth || !beforeSig.current) return;
+      setLiveScore(similarityScore(beforeSig.current, signatureOf(v, v.videoWidth, v.videoHeight)));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [phase, beforeId]);
+
   const gate = evaluateGate({ mode: captureType, fix: geo.fix, heading: heading.reading, headingStatus: heading.status, now, rules, before });
 
   const startSensors = useCallback(async () => {
@@ -112,6 +142,7 @@ export function CapturePage() {
       if (Date.now() - t0 > MAX_CAPTURE_DURATION_MS) throw new Error('SLOW_CAPTURE');
       const buf = await shot.blob.arrayBuffer();
       const hash = await sha256Hex(buf);
+      const similarity = beforeSig.current ? similarityScore(beforeSig.current, await signatureOfBlob(shot.blob).catch(() => null)) : null;
       setCaptured({
         photoId: uuid(),
         blob: shot.blob,
@@ -125,6 +156,7 @@ export function CapturePage() {
         positionSamples: geo.fixRef.current?.sampleCount ?? 0,
         distanceM: pre.distanceM,
         headingDiffDeg: pre.headingDiffDeg,
+        similarity,
       });
       setPhase('review');
     } catch (e) {
@@ -160,6 +192,8 @@ export function CapturePage() {
           position_samples: captured.positionSamples,
           heading_platform_accuracy_deg: heading.readingRef.current?.platformAccuracyDeg ?? null,
           heading_samples: heading.reading?.sampleCount ?? null,
+          image_similarity_score: captured.similarity,
+          image_similarity_method: captured.similarity === null ? null : 'gradient_correlation_48x36_v1',
         }),
         measurement: toPayload(captured.measurement),
       };
@@ -281,6 +315,7 @@ export function CapturePage() {
             <KeyValue label={t('job.heading')} value={m.headingDeg == null ? '—' : `${fmtNum(m.headingDeg, 0)}° ±${fmtNum(m.headingUncertaintyDeg)}`} />
             {captureType === 'AFTER' && <KeyValue label={t('verification.distance')} value={t('common.meters', { v: fmtNum(captured.distanceM) })} />}
             {captureType === 'AFTER' && <KeyValue label={t('verification.headingDiff')} value={`${fmtNum(captured.headingDiffDeg)}°`} />}
+            {captureType === 'AFTER' && <KeyValue label={t('verification.similarity')} value={captured.similarity === null ? '—' : `${captured.similarity}%`} />}
             <KeyValue label={t('job.fileSize')} value={`${fmtBytes(captured.blob.size)} · ${captured.width}×${captured.height}`} />
             <KeyValue label={t('job.sha256')} value={captured.sha256} mono />
           </div>
@@ -356,6 +391,9 @@ export function CapturePage() {
       </div>
       <div className={`relative flex-1 overflow-hidden transition ${ready ? 'ring-4 ring-inset ring-go-600' : ''}`}>
         <video ref={videoRef} playsInline muted autoPlay className="h-full w-full object-cover" />
+        {captureType === 'AFTER' && ghost && beforeUrl && (
+          <img src={beforeUrl} alt="" aria-hidden className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-40" />
+        )}
         {camera.status !== 'live' && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/90 p-6 text-center">
             {camera.status === 'starting' && <Spinner />}
@@ -386,6 +424,20 @@ export function CapturePage() {
                 turn > 0 ? <IconRotateRight size={84} className="text-white" /> : <IconRotateLeft size={84} className="text-white" />
               ) : null}
             </div>
+          </div>
+        )}
+        {captureType === 'AFTER' && beforeUrl && (
+          <div className="absolute right-3 top-[4.75rem] flex flex-col items-end gap-2">
+            <button
+              onClick={() => setGhost((v) => !v)}
+              aria-pressed={ghost}
+              className={`rounded-full px-3 py-1.5 text-[13px] font-semibold shadow ${ghost ? 'bg-primary-600 text-white' : 'bg-black/60 text-white'}`}
+            >
+              {ghost ? t('capture.ghostOn') : t('capture.ghostOff')}
+            </button>
+            {liveScore !== null && (
+              <span className="rounded-full bg-black/60 px-3 py-1.5 text-[13px] font-semibold text-white">{t('capture.similarityLive', { v: liveScore })}</span>
+            )}
           </div>
         )}
         <div className="absolute bottom-3 left-3 rounded-xl bg-black/60 px-3 py-2 font-mono text-[12px] leading-relaxed text-white/90">

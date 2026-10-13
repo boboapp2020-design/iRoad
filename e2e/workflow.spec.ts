@@ -107,11 +107,11 @@ test('inspector Before → repair → After (PASS) → reviewer approves', async
   await page.screenshot({ path: 'test-results/05-job-detail.png', fullPage: true });
 
   // After capture: start too far away and rotated -> shutter must stay disabled
-  position = { latitude: ORIGIN.latitude + 4.2 / M_PER_DEG, longitude: ORIGIN.longitude, accuracy: 2.4 };
+  position = { latitude: ORIGIN.latitude + 7.5 / M_PER_DEG, longitude: ORIGIN.longitude, accuracy: 2.4 };
   heading = 137;
   await page.getByRole('link', { name: /ถ่ายภาพหลังซ่อม/ }).first().click();
   await page.getByRole('button', { name: 'เปิดกล้อง', exact: true }).click();
-  await expect(page.getByText('เดินตามลูกศรอีก 4.2 ม.', { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('เดินตามลูกศรอีก 7.5 ม.', { exact: true })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText('ทิศ 137°', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'ถ่ายภาพ' })).toBeDisabled();
   await page.screenshot({ path: 'test-results/06-after-blocked.png' });

@@ -40,7 +40,8 @@ function authActions() {
   listAudit: actionListAudit,
   verifyAuditChain: actionVerifyAuditChain,
   invalidateEvidence: actionInvalidateEvidence,
-  checkEvidenceIntegrity: actionCheckEvidenceIntegrity
+  checkEvidenceIntegrity: actionCheckEvidenceIntegrity,
+  purgeRepairData: actionPurgeRepairData
   };
 }
 

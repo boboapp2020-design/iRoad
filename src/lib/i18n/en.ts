@@ -34,7 +34,7 @@ export const en: Dictionary = {
     PENDING_REVIEW: 'Pending review', APPROVED: 'Approved', REJECTED: 'Rejected', NEEDS_RECAPTURE: 'Needs recapture', CANCELLED: 'Cancelled', DELETED: 'Deleted',
   },
   verification: {
-    PASS: 'PASS', FAIL: 'FAIL', INSUFFICIENT_DATA: 'INSUFFICIENT DATA', PENDING: 'PENDING',
+    similarity: 'View similarity (aid, not a criterion)', PASS: 'PASS', FAIL: 'FAIL', INSUFFICIENT_DATA: 'INSUFFICIENT DATA', PENDING: 'PENDING',
     PASS_desc: 'All required checks passed.', FAIL_desc: 'At least one measured value exceeds its threshold.',
     INSUFFICIENT_DATA_desc: 'Required measurements are missing or unreliable, so the location cannot be confirmed.',
     PENDING_desc: 'No authoritative server verification yet.',
@@ -87,7 +87,7 @@ export const en: Dictionary = {
     deleteJob: 'Delete repair job', deleteReason: 'Reason for deleting (at least 5 characters) — recorded in the log', deletedBanner: 'Deleted by {by} on {at}', deletedReason: 'Reason: {r}', deletedKept: 'Photos and evidence records are kept for audit', deleted: 'Job deleted',
   },
   capture: {
-    openCamera: 'Open camera', introLead: 'The app needs these three things. Tap "Allow" when your phone asks.', beforeSavedNext: 'Next: finish the repair, then tap "Repair done" on the job.', inRange: 'Within limit', outOfRange: 'Not within limit yet', measuring: 'Measuring...', cardDistance: '{v} m from spot', cardDistanceWait: 'Finding distance', cardHeading: 'Facing {v}°', cardHeadingDiff: '{d}° off', resultTitle: 'Verification result', result_PASS: 'Sent to the reviewer', result_FAIL: 'Position or direction does not match; retake', result_INSUFFICIENT_DATA: 'Not enough data to confirm; retake', result_PENDING: 'Waiting for the server', beforeTitle: 'Before capture', afterTitle: 'After capture', requestPermissions: 'Allow camera, location and compass',
+    ghostOn: 'Overlay: on', ghostOff: 'Overlay: off', similarityLive: 'View match {v}%', ghostTip: 'Line the live view up with the faded Before photo', openCamera: 'Open camera', introLead: 'The app needs these three things. Tap "Allow" when your phone asks.', beforeSavedNext: 'Next: finish the repair, then tap "Repair done" on the job.', inRange: 'Within limit', outOfRange: 'Not within limit yet', measuring: 'Measuring...', cardDistance: '{v} m from spot', cardDistanceWait: 'Finding distance', cardHeading: 'Facing {v}°', cardHeadingDiff: '{d}° off', resultTitle: 'Verification result', result_PASS: 'Sent to the reviewer', result_FAIL: 'Position or direction does not match; retake', result_INSUFFICIENT_DATA: 'Not enough data to confirm; retake', result_PENDING: 'Waiting for the server', beforeTitle: 'Before capture', afterTitle: 'After capture', requestPermissions: 'Allow camera, location and compass',
     permissionsIntro: 'The app needs the rear camera, high-accuracy GPS and the orientation sensor to record verifiable evidence.',
     criteria: 'Requirements before capture', critAccuracy: 'GPS accuracy ≤ {v} m', critDistance: 'Distance from original ≤ {v} m',
     critHeading: 'Heading difference ≤ {v}°', critFresh: 'Location fresher than {v} s',
@@ -131,7 +131,7 @@ export const en: Dictionary = {
     done: 'Review saved',
   },
   admin: {
-    title: 'Administration', users: 'Users', addUser: 'Add user', fullName: 'Full name', role: 'Role', active: 'Active',
+    purgeTitle: 'Erase all repair records', purgeText: 'Deletes every repair job, photo, verification and review so you can start over. Users, settings and the audit log stay. Photo files go to the Google Drive trash (recoverable for 30 days).', purgeReason: 'Reason (at least 5 characters)', purgeType: 'Type "{v}" to confirm', purgePhrase: 'DELETE ALL', purgeConfirm: 'Erase', purgeDone: 'Erased {jobs} jobs and {photos} photos', title: 'Administration', users: 'Users', addUser: 'Add user', fullName: 'Full name', role: 'Role', active: 'Active',
     tempPassword: 'Temporary password (shown once): {v}', resetPassword: 'Reset password', settings: 'Settings',
     allowSelfApproval: 'Allow approving own work', sessionTtl: 'Session lifetime (hours)', thresholds: 'Verification thresholds (read-only)',
     audit: 'Audit log', verifyChain: 'Verify audit log chain', chainOk: 'Audit log intact ({n} entries)',

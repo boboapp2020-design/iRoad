@@ -149,15 +149,68 @@ function Audit() {
   );
 }
 
+/** Erase every repair record (jobs, photos, verifications, reviews). Users, settings and the audit log stay. */
+function Purge() {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const [phrase, setPhrase] = useState('');
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ kind: 'error' | 'success'; text: string } | null>(null);
+  const required = t('admin.purgePhrase');
+  return (
+    <Card className="space-y-3 ring-stop-600/30">
+      <h2 className="font-bold text-stop-700">{t('admin.purgeTitle')}</h2>
+      <p className="text-[15px] text-asphalt-700">{t('admin.purgeText')}</p>
+      {msg && <Alert kind={msg.kind}>{msg.text}</Alert>}
+      {!open ? (
+        <Button variant="danger" className="w-full" onClick={() => { setOpen(true); setMsg(null); }}>{t('admin.purgeTitle')}</Button>
+      ) : (
+        <div className="space-y-2">
+          <Field label={t('admin.purgeReason')}><Input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} /></Field>
+          <Field label={t('admin.purgeType', { v: required })}><Input value={phrase} onChange={(e) => setPhrase(e.target.value)} autoComplete="off" /></Field>
+          <div className="flex gap-2">
+            <Button variant="secondary" className="flex-1" onClick={() => { setOpen(false); setPhrase(''); }}>{t('common.cancel')}</Button>
+            <Button
+              variant="danger"
+              className="flex-1 !bg-stop-600 !text-white"
+              busy={busy}
+              disabled={phrase.trim() !== required || reason.trim().length < 5}
+              onClick={async () => {
+                setBusy(true);
+                setMsg(null);
+                try {
+                  const r = await api.purgeRepairData(phrase.trim(), reason.trim());
+                  setMsg({ kind: 'success', text: t('admin.purgeDone', { jobs: r.rows.repair_jobs ?? 0, photos: r.rows.repair_photos ?? 0 }) });
+                  setOpen(false);
+                  setPhrase('');
+                  setReason('');
+                } catch (e) {
+                  setMsg({ kind: 'error', text: errorMessage(t, e) });
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              {t('admin.purgeConfirm')}
+            </Button>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export function AdminPage() {
   const { t } = useI18n();
   return (
-    <div>
-      <PageHeader title={t('admin.title')} back="/" />
-      <div className="space-y-4 p-4">
+    <div className="min-h-full bg-paper">
+      <PageHeader title={t('admin.title')} />
+      <div className="mx-auto max-w-3xl space-y-4 p-4">
         <Users />
         <Settings />
         <Audit />
+        <Purge />
       </div>
     </div>
   );

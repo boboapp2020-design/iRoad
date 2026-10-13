@@ -71,7 +71,19 @@ export const RULES_V3: VerificationRules = Object.freeze({
   maxDistanceM: 1,
 });
 
-export const CURRENT_RULES: VerificationRules = RULES_V3;
+/**
+ * v4 (project owner): phone GPS drifts 3–5 m even when standing on the same
+ * spot, so 1 m could not be met in the field. The After photo must be within
+ * 5 m of the Before position; heading stays ±10°. Accuracy is still recorded
+ * only. Exact framing is checked by eye with the Before-photo overlay.
+ */
+export const RULES_V4: VerificationRules = Object.freeze({
+  ...RULES_V3,
+  version: 'rr-verify-v4',
+  maxDistanceM: 5,
+});
+
+export const CURRENT_RULES: VerificationRules = RULES_V4;
 
 /** Server-side submission limits (not part of the pass/fail verification). */
 export const SUBMISSION_LIMITS = Object.freeze({

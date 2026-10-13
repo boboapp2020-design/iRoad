@@ -39,6 +39,8 @@ export const api = {
   markRepairDone: (id: string, note?: string) => call<{ job: Job }>('markRepairDone', { id, note }),
   cancelJob: (id: string, reason: string) => call<{ job: Job }>('cancelJob', { id, reason }),
   deleteJob: (id: string, reason: string) => call<{ job: Job }>('deleteJob', { id, reason }),
+  purgeRepairData: (confirm: string, reason: string) =>
+    call<{ rows: Record<string, number>; files_trashed: number; files_not_trashed: number }>('purgeRepairData', { confirm, reason }),
   assignJob: (id: string, assigned_to: string) => call<{ job: Job }>('assignJob', { id, assigned_to }),
   submitCapture: (p: SubmitCapturePayload) => call<SubmitCaptureResult>('submitCapture', p as unknown as Record<string, unknown>, { timeoutMs: 120_000 }),
   getPhoto: (photo_id: string, variant: 'thumb' | 'original' = 'original') =>

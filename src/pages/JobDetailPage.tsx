@@ -291,6 +291,9 @@ export function JobDetailPage() {
                 <div>
                   <KeyValue label={t('verification.distance')} value={<span className="inline-flex items-center gap-2">{currentV.measured_distance_m == null ? '—' : t('common.meters', { v: fmtNum(currentV.measured_distance_m) })}<CheckIcon state={currentV.distance_pass == null ? null : currentV.distance_pass ? 'ok' : 'bad'} /></span>} />
                   <KeyValue label={t('verification.headingDiff')} value={<span className="inline-flex items-center gap-2">{currentV.heading_difference_degrees == null ? '—' : `${fmtNum(currentV.heading_difference_degrees)}°`}<CheckIcon state={currentV.heading_pass == null ? null : currentV.heading_pass ? 'ok' : 'bad'} /></span>} />
+                  {typeof after.device_metadata?.image_similarity_score === 'number' && (
+                    <KeyValue label={t('verification.similarity')} value={`${after.device_metadata.image_similarity_score}%`} />
+                  )}
                 </div>
               )}
             </Card>

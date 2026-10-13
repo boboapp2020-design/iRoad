@@ -130,6 +130,28 @@ describe('jobs and permissions', () => {
     w.b.sheet('repair_jobs').data[0][1] = 'something_else';
     expect(w.b.call('listJobs', {}, w.inspector).error?.code).toBe('SCHEMA_MISMATCH');
   });
+  it('lets only an admin erase all repair records with the typed phrase; users and audit stay', () => {
+    const { job } = jobReadyForAfter(w);
+    w.b.call('submitCapture', afterPayload(job.id), w.inspector);
+    createJob(w);
+    expect(w.b.drive.activeFiles().length).toBe(2);
+    expect(w.b.call('purgeRepairData', { confirm: 'ลบทั้งหมด', reason: 'เริ่มทดสอบใหม่' }, w.inspector).error?.code).toBe('FORBIDDEN');
+    expect(w.b.call('purgeRepairData', { confirm: 'ลบ', reason: 'เริ่มทดสอบใหม่' }, w.admin).error?.code).toBe('VALIDATION_ERROR');
+    const r = w.b.call('purgeRepairData', { confirm: 'ลบทั้งหมด', reason: 'เริ่มทดสอบใหม่' }, w.admin);
+    expect(r.ok).toBe(true);
+    expect(r.data.rows).toMatchObject({ repair_jobs: 2, repair_photos: 2, verification_results: 1 });
+    expect(r.data.files_trashed).toBe(2);
+    expect(w.b.drive.activeFiles()).toHaveLength(0);
+    for (const t of ['repair_jobs', 'repair_photos', 'verification_results', 'repair_reviews']) expect(w.b.sheet(t).rows()).toHaveLength(0);
+    expect(w.b.call('listJobs', {}, w.admin).data.jobs).toHaveLength(0);
+    expect(w.b.call('stats', {}, w.admin).data.counts.total).toBe(0);
+    expect(w.b.sheet('users').rows().length).toBeGreaterThan(0);
+    expect(w.b.sheet('audit_logs').rows().some((a) => a.action === 'data.purged')).toBe(true);
+    expect(w.b.call('verifyAuditChain', {}, w.admin).data.intact).toBe(true);
+    // Work continues normally and codes are not reused.
+    const y = new Date().getUTCFullYear();
+    expect(createJob(w).job_code).toBe(`RR-${y}-000003`);
+  });
   it('reports dashboard counts scoped to the caller', () => {
     createJob(w);
     createJob(w, w.inspector2);
@@ -232,17 +254,17 @@ describe('After capture and verification', () => {
     const { job } = jobReadyForAfter(w);
     const r = w.b.call('submitCapture', afterPayload(job.id), w.inspector);
     expect(r.ok).toBe(true);
-    expect(r.data.verification).toMatchObject({ overall_status: 'PASS', gps_accuracy_pass: true, distance_pass: true, heading_pass: true, rules_version: 'rr-verify-v3' });
+    expect(r.data.verification).toMatchObject({ overall_status: 'PASS', gps_accuracy_pass: true, distance_pass: true, heading_pass: true, rules_version: 'rr-verify-v4' });
     expect(r.data.verification.measured_distance_m).toBeCloseTo(0.6, 3);
     expect(r.data.verification.heading_difference_degrees).toBe(3);
-    expect(r.data.verification.thresholds.max_distance_m).toBe(1);
+    expect(r.data.verification.thresholds.max_distance_m).toBe(5);
     expect(r.data.verification.thresholds.max_gps_accuracy_m).toBeNull();
     expect(r.data.verification.thresholds.max_before_gps_accuracy_m).toBeNull();
     expect(r.data.job.status).toBe('PENDING_REVIEW');
   });
   it('FAIL keeps the evidence, moves to NEEDS_RECAPTURE and can never be approved', () => {
     const { job } = jobReadyForAfter(w);
-    const r = w.b.call('submitCapture', afterPayload(job.id, northOf(ORIGIN, 4.2)), w.inspector);
+    const r = w.b.call('submitCapture', afterPayload(job.id, northOf(ORIGIN, 8)), w.inspector);
     expect(r.data.verification.overall_status).toBe('FAIL');
     expect(r.data.verification.failure_reasons.map((x: { code: string }) => x.code)).toContain('DISTANCE_EXCEEDED');
     expect(r.data.job.status).toBe('NEEDS_RECAPTURE');
@@ -261,12 +283,12 @@ describe('After capture and verification', () => {
     const r = w.b.call('submitCapture', afterPayload(job.id), w.inspector);
     expect(r.data.verification.overall_status).toBe('PASS');
   });
-  it('distance limit is 1 m: 0.95 m passes, 1.2 m fails', () => {
+  it('distance limit is 5 m: 4.9 m passes, 5.3 m fails', () => {
     const { job } = jobReadyForAfter(w);
-    const far = w.b.call('submitCapture', afterPayload(job.id, northOf(ORIGIN, 1.2)), w.inspector);
+    const far = w.b.call('submitCapture', afterPayload(job.id, northOf(ORIGIN, 5.3)), w.inspector);
     expect(far.data.verification.overall_status).toBe('FAIL');
     expect(far.data.verification.failure_reasons.map((x: { code: string }) => x.code)).toContain('DISTANCE_EXCEEDED');
-    const near = w.b.call('submitCapture', afterPayload(job.id, northOf(ORIGIN, 0.95)), w.inspector);
+    const near = w.b.call('submitCapture', afterPayload(job.id, northOf(ORIGIN, 4.9)), w.inspector);
     expect(near.data.verification.overall_status).toBe('PASS');
   });
   it('heading limit is ±10°: 10° passes, 11° fails (either side)', () => {
@@ -406,7 +428,7 @@ describe('evidence access, corrections and audit', () => {
   });
   it('does not allow editing thresholds at runtime', () => {
     expect(w.b.call('updateSetting', { key: 'max_distance_m', value: '10' }, w.admin).error?.code).toBe('VALIDATION_ERROR');
-    expect(w.b.call('getSettings', {}, w.inspector).data.rules.maxDistanceM).toBe(1);
+    expect(w.b.call('getSettings', {}, w.inspector).data.rules.maxDistanceM).toBe(5);
   });
   it('returns a generic error for unknown actions and malformed bodies', () => {
     expect(w.b.call('dropTables', {}, w.admin).error?.code).toBe('UNKNOWN_ACTION');

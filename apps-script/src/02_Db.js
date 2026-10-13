@@ -118,12 +118,27 @@ var Db = (function () {
     return row;
   }
 
+  /** Blank every data row of a table (headers stay). Returns how many rows held data. */
+  function clearAll(name) {
+    var count = all(name).length;
+    var sh = sheet(name);
+    var cols = columns(name);
+    var last = sh.getLastRow();
+    if (last >= 2) {
+      var blank = [];
+      for (var i = 0; i < last - 1; i++) blank.push(cols.map(function () { return ''; }));
+      sh.getRange(2, 1, last - 1, cols.length).setValues(blank);
+    }
+    cache_[name] = [];
+    return count;
+  }
+
   function reset() {
     cache_ = {};
     ss_ = null;
   }
 
-  return { spreadsheet: spreadsheet, sheet: sheet, all: all, find: find, filter: filter, byId: byId, insert: insert, update: update, reset: reset };
+  return { spreadsheet: spreadsheet, sheet: sheet, all: all, find: find, filter: filter, byId: byId, insert: insert, update: update, clearAll: clearAll, reset: reset };
 })();
 
 /** Run fn while holding the script-wide lock (serializes all writes). */

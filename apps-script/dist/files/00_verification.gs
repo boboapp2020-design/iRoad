@@ -26,6 +26,7 @@ var RRVerify = (() => {
     RULES_V1: () => RULES_V1,
     RULES_V2: () => RULES_V2,
     RULES_V3: () => RULES_V3,
+    RULES_V4: () => RULES_V4,
     SUBMISSION_LIMITS: () => SUBMISSION_LIMITS,
     bearingDeg: () => bearingDeg,
     cameraHeadingFromOrientation: () => cameraHeadingFromOrientation,
@@ -71,7 +72,12 @@ var RRVerify = (() => {
     maxBeforeGpsAccuracyM: null,
     maxDistanceM: 1
   });
-  var CURRENT_RULES = RULES_V3;
+  var RULES_V4 = Object.freeze({
+    ...RULES_V3,
+    version: "rr-verify-v4",
+    maxDistanceM: 5
+  });
+  var CURRENT_RULES = RULES_V4;
   var SUBMISSION_LIMITS = Object.freeze({
     /** Captures older than this when they reach the server are rejected (ms). */
     maxSubmissionDelayMs: 15 * 6e4,
