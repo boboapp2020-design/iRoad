@@ -33,3 +33,8 @@ export const IconRotateLeft = (p: IconProps) => <svg {...base(p)}><path d="M5 12
 export const IconRefresh = (p: IconProps) => <svg {...base(p)}><path d="M20 11a8 8 0 0 0-14.5-4.5M4 13a8 8 0 0 0 14.5 4.5" /><path d="M5 3v4h4M19 21v-4h-4" /></svg>;
 export const IconHelp = (p: IconProps) => <svg {...base(p)}><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7M12 17v.1" /></svg>;
 export const IconArrowUp = (p: IconProps) => <svg {...base(p)}><path d="M12 20V5M6 11l6-6 6 6" /></svg>;
+export const IconUser = (p: IconProps) => <svg {...base(p)}><circle cx="12" cy="8.5" r="3.8" /><path d="M4.5 20c1.2-3.6 4-5.3 7.5-5.3s6.3 1.7 7.5 5.3" /></svg>;
+export const IconCheckCircle = (p: IconProps) => <svg {...base(p)}><circle cx="12" cy="12" r="9" /><path d="m8 12.3 2.8 2.8L16.2 9.6" /></svg>;
+export const IconFilter = (p: IconProps) => <svg {...base(p)}><path d="M4 6h16M7 12h10M10 18h4" /></svg>;
+export const IconMail = (p: IconProps) => <svg {...base(p)}><rect x="3" y="5.5" width="18" height="13" rx="2" /><path d="m3.5 7 8.5 6 8.5-6" /></svg>;
+export const IconLock = (p: IconProps) => <svg {...base(p)}><rect x="5" y="10.5" width="14" height="10" rx="2" /><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" /></svg>;

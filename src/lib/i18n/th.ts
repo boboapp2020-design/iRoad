@@ -1,7 +1,7 @@
 export const th = {
   app: { name: 'Road Repair', tagline: 'ระบบติดตามการซ่อมถนน' },
   common: {
-    m: 'ม.', save: 'บันทึก', cancel: 'ยกเลิก', back: 'กลับ', retry: 'ลองใหม่', loading: 'กำลังโหลด...', confirm: 'ยืนยัน',
+    resetDemo: 'ล้างข้อมูลทดลองทั้งหมด', resetDemoConfirm: 'ลบงานและรูปทดลองทั้งหมดในเครื่องนี้ แล้วเริ่มใหม่?', account: 'บัญชีของฉัน', m: 'ม.', save: 'บันทึก', cancel: 'ยกเลิก', back: 'กลับ', retry: 'ลองใหม่', loading: 'กำลังโหลด...', confirm: 'ยืนยัน',
     close: 'ปิด', search: 'ค้นหา', all: 'ทั้งหมด', yes: 'ใช่', no: 'ไม่', next: 'ถัดไป', none: '—', meters: '{v} ม.',
     degrees: '{v}°', signOut: 'ออกจากระบบ', language: 'English', required: 'จำเป็น', unknownError: 'เกิดข้อผิดพลาด',
     networkError: 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ข้อมูลอาจยังไม่ถูกบันทึก โปรดลองใหม่',
@@ -24,7 +24,7 @@ export const th = {
     beforeHint: 'ถ่ายตรงไหนก็ได้ ระบบจะจำตำแหน่งและทิศทางไว้', repairHint: 'กดเมื่อซ่อมเสร็จ เพื่อเปิดให้ถ่ายภาพหลังซ่อม',
     afterHint: 'ยืนจุดเดิม หันทิศเดิม แอปจะบอกทางให้', reviewHint: 'ดูภาพเทียบก่อน/หลัง แล้วอนุมัติหรือส่งกลับ',
   },
-  home: { hello: 'สวัสดี {name}', todo: 'ต้องทำต่อ', todoEmpty: 'ไม่มีงานค้าง เยี่ยมมาก', allJobs: 'งานทั้งหมด', filters: 'ตัวกรอง', newJobHint: 'เจอถนนชำรุด? เริ่มบันทึกได้เลย' },
+  home: { clearFilters: 'ล้างตัวกรอง', noMatch: 'ไม่พบงานที่ตรงกับการค้นหา', hello: 'สวัสดี {name}', todo: 'ต้องทำต่อ', todoEmpty: 'ไม่มีงานค้าง เยี่ยมมาก', allJobs: 'งานทั้งหมด', filters: 'ตัวกรอง', newJobHint: 'เจอถนนชำรุด? เริ่มบันทึกได้เลย' },
   roles: { admin: 'ผู้ดูแลระบบ', inspector: 'ผู้ตรวจสอบภาคสนาม', reviewer: 'ผู้ตรวจรับงาน' },
   nav: { home: 'หน้าหลัก', newJob: 'สร้างรายการใหม่', admin: 'ผู้ดูแล', reports: 'รายงาน', map: 'แผนที่' },
   status: {
@@ -70,7 +70,7 @@ export const th = {
     listView: 'รายการ', mapView: 'แผนที่', exportCsv: 'ส่งออก CSV', report: 'รายงาน (PDF)',
   },
   job: {
-    create: 'สร้างรายการซ่อมถนน', roadName: 'ชื่อถนน / สถานที่', location: 'รายละเอียดตำแหน่ง', damageType: 'ประเภทความเสียหาย',
+    result: 'ผลการตรวจสอบ', info: 'ข้อมูลงาน', createdAt: 'สร้างเมื่อ', historyAll: 'ข้อมูลหลักฐานและประวัติทั้งหมด', create: 'สร้างรายการซ่อมถนน', roadName: 'ชื่อถนน / สถานที่', location: 'รายละเอียดตำแหน่ง', damageType: 'ประเภทความเสียหาย',
     description: 'รายละเอียด', priority: 'ระดับความสำคัญ', assignee: 'ผู้ตรวจสอบที่รับผิดชอบ', notes: 'หมายเหตุ',
     currentLocation: 'พิกัดปัจจุบัน (อ้างอิงเท่านั้น)', locating: 'กำลังหาตำแหน่ง...', nextBefore: 'ถัดไป: ถ่ายภาพก่อนซ่อม',
     code: 'รหัสงาน', details: 'รายละเอียดงาน', beforePhoto: 'ภาพก่อนซ่อม', afterPhoto: 'ภาพหลังซ่อม',
@@ -86,7 +86,7 @@ export const th = {
     deleteJob: 'ลบรายการซ่อม', deleteReason: 'เหตุผลในการลบ (อย่างน้อย 5 ตัวอักษร) — จะถูกบันทึกใน log', deletedBanner: 'รายการนี้ถูกลบโดย {by} เมื่อ {at}', deletedReason: 'เหตุผล: {r}', deletedKept: 'รูปและข้อมูลหลักฐานยังเก็บไว้เพื่อการตรวจสอบ', deleted: 'ลบรายการแล้ว',
   },
   capture: {
-    beforeTitle: 'ถ่ายภาพก่อนซ่อม', afterTitle: 'ถ่ายภาพหลังซ่อม', requestPermissions: 'อนุญาตกล้อง ตำแหน่ง และเข็มทิศ',
+    openCamera: 'เปิดกล้อง', introLead: 'แอปจะขอใช้ 3 อย่างนี้ กด "อนุญาต" เมื่อมือถือถาม', beforeSavedNext: 'ขั้นต่อไป: ซ่อมให้เสร็จ แล้วกด "ซ่อมเสร็จแล้ว" ในหน้างาน', inRange: 'อยู่ในเกณฑ์', outOfRange: 'ยังไม่อยู่ในเกณฑ์', measuring: 'กำลังวัด...', cardDistance: 'ห่างจุดเดิม {v} ม.', cardDistanceWait: 'กำลังหาระยะ', cardHeading: 'ทิศ {v}°', cardHeadingDiff: 'ต่างจากเดิม {d}°', resultTitle: 'ผลการตรวจสอบ', result_PASS: 'ส่งให้ผู้ตรวจรับแล้ว', result_FAIL: 'ตำแหน่งหรือทิศไม่ตรงจุดเดิม ต้องถ่ายใหม่', result_INSUFFICIENT_DATA: 'ข้อมูลไม่พอให้ยืนยัน ต้องถ่ายใหม่', result_PENDING: 'รอผลจากเซิร์ฟเวอร์', beforeTitle: 'ถ่ายภาพก่อนซ่อม', afterTitle: 'ถ่ายภาพหลังซ่อม', requestPermissions: 'อนุญาตกล้อง ตำแหน่ง และเข็มทิศ',
     permissionsIntro: 'แอปต้องใช้กล้องหลัง GPS ความแม่นยำสูง และเซ็นเซอร์ทิศทาง เพื่อบันทึกหลักฐานที่ตรวจสอบได้',
     criteria: 'เกณฑ์ก่อนถ่ายภาพ', critAccuracy: 'GPS accuracy ≤ {v} ม.', critDistance: 'ห่างจากจุดเดิม ≤ {v} ม.',
     critHeading: 'ทิศทางต่างจากเดิม ≤ {v}°', critFresh: 'ข้อมูลตำแหน่งใหม่ไม่เกิน {v} วินาที',

@@ -86,9 +86,9 @@ test('inspector Before → repair → After (PASS) → reviewer approves', async
   await page.getByRole('button', { name: 'ถัดไป: ถ่ายภาพก่อนซ่อม' }).click();
 
   // Before capture
-  await page.getByRole('button', { name: /อนุญาตกล้อง ตำแหน่ง และเข็มทิศ/ }).click();
-  await expect(page.getByText('±2.1 ม.', { exact: true })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText('125°', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'เปิดกล้อง', exact: true }).click();
+  await expect(page.getByText('GPS ±2.1 ม.', { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('ทิศ 125°', { exact: true })).toBeVisible();
   const shutter = page.getByRole('button', { name: 'ถ่ายภาพ' });
   await expect(shutter).toBeEnabled({ timeout: 15_000 });
   await page.screenshot({ path: 'test-results/03-before-camera.png' });
@@ -110,16 +110,16 @@ test('inspector Before → repair → After (PASS) → reviewer approves', async
   position = { latitude: ORIGIN.latitude + 4.2 / M_PER_DEG, longitude: ORIGIN.longitude, accuracy: 2.4 };
   heading = 137;
   await page.getByRole('link', { name: /ถ่ายภาพหลังซ่อม/ }).first().click();
-  await page.getByRole('button', { name: /อนุญาตกล้อง ตำแหน่ง และเข็มทิศ/ }).click();
+  await page.getByRole('button', { name: 'เปิดกล้อง', exact: true }).click();
   await expect(page.getByText('เดินตามลูกศรอีก 4.2 ม.', { exact: true })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText('137°', { exact: true })).toBeVisible();
+  await expect(page.getByText('ทิศ 137°', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'ถ่ายภาพ' })).toBeDisabled();
   await page.screenshot({ path: 'test-results/06-after-blocked.png' });
 
   // Move into tolerance
   position = { latitude: ORIGIN.latitude + 0.6 / M_PER_DEG, longitude: ORIGIN.longitude, accuracy: 2.4 };
   heading = 128;
-  await expect(page.getByText('0.6 ม.', { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('ห่างจุดเดิม 0.6 ม.', { exact: true })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText('ตรงจุดแล้ว กดถ่ายได้เลย', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'ถ่ายภาพ' })).toBeEnabled({ timeout: 10_000 });
   await page.screenshot({ path: 'test-results/07-after-ready.png' });
@@ -128,7 +128,7 @@ test('inspector Before → repair → After (PASS) → reviewer approves', async
   // No PASS before the server answers.
   await expect(page.getByText('ผ่านเกณฑ์')).toHaveCount(0);
   await page.getByRole('button', { name: 'ยืนยันและบันทึกภาพหลังซ่อม' }).click();
-  await expect(page.getByText('บันทึกหลักฐานแล้ว ผลการตรวจสอบ: ผ่านเกณฑ์')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('ส่งให้ผู้ตรวจรับแล้ว')).toBeVisible({ timeout: 15_000 });
   await page.screenshot({ path: 'test-results/08-after-result.png', fullPage: true });
   stop();
 
@@ -165,7 +165,7 @@ test('lost response during upload → no false PASS; retry does not duplicate', 
   await page.getByRole('link', { name: /สร้างรายการใหม่/ }).first().click();
   await page.getByLabel(/ชื่อถนน/).fill('ถ.ลาดกระบัง');
   await page.getByRole('button', { name: 'ถัดไป: ถ่ายภาพก่อนซ่อม' }).click();
-  await page.getByRole('button', { name: /อนุญาตกล้อง ตำแหน่ง และเข็มทิศ/ }).click();
+  await page.getByRole('button', { name: 'เปิดกล้อง', exact: true }).click();
   await expect(page.getByRole('button', { name: 'ถ่ายภาพ' })).toBeEnabled({ timeout: 15_000 });
   await page.getByRole('button', { name: 'ถ่ายภาพ' }).click();
   fail.count = 1;
@@ -190,7 +190,7 @@ test('unsupported heading sensor blocks capture', async ({ browser }) => {
   await page.getByRole('link', { name: /สร้างรายการใหม่/ }).first().click();
   await page.getByLabel(/ชื่อถนน/).fill('ถ.บางนา');
   await page.getByRole('button', { name: 'ถัดไป: ถ่ายภาพก่อนซ่อม' }).click();
-  await page.getByRole('button', { name: /อนุญาตกล้อง ตำแหน่ง และเข็มทิศ/ }).click();
+  await page.getByRole('button', { name: 'เปิดกล้อง', exact: true }).click();
   await expect(page.getByText('ไม่มีเซ็นเซอร์ทิศทาง ไม่สามารถดำเนินการตรวจสอบได้').first()).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('button', { name: 'ถ่ายภาพ' })).toBeDisabled();
 });
@@ -218,7 +218,7 @@ test('standing still (watchPosition goes quiet) can still capture after 12 s', a
   await page.getByRole('link', { name: /สร้างรายการใหม่/ }).first().click();
   await page.getByLabel(/ชื่อถนน/).fill('ถ.นิ่ง');
   await page.getByRole('button', { name: 'ถัดไป: ถ่ายภาพก่อนซ่อม' }).click();
-  await page.getByRole('button', { name: /อนุญาตกล้อง ตำแหน่ง และเข็มทิศ/ }).click();
+  await page.getByRole('button', { name: 'เปิดกล้อง', exact: true }).click();
   await page.waitForTimeout(12_000);
   await expect(page.getByRole('button', { name: 'ถ่ายภาพ' })).toBeEnabled({ timeout: 5_000 });
   await page.getByRole('button', { name: 'ถ่ายภาพ' }).click();
@@ -238,8 +238,8 @@ test('Before photo can be taken anywhere, even with 9 m GPS accuracy', async ({ 
   await page.getByLabel(/ชื่อถนน/).fill('ถ.ใต้ต้นไม้');
   await page.getByRole('button', { name: 'ถัดไป: ถ่ายภาพก่อนซ่อม' }).click();
   await expect(page.getByText(/ถ่ายตรงไหนก็ได้/).first()).toBeVisible();
-  await page.getByRole('button', { name: /อนุญาตกล้อง ตำแหน่ง และเข็มทิศ/ }).click();
-  await expect(page.getByText('±9.0 ม.', { exact: true })).toBeVisible({ timeout: 15_000 });
+  await page.getByRole('button', { name: 'เปิดกล้อง', exact: true }).click();
+  await expect(page.getByText('GPS ±9.0 ม.', { exact: true })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('button', { name: 'ถ่ายภาพ' })).toBeEnabled({ timeout: 10_000 });
   await page.getByRole('button', { name: 'ถ่ายภาพ' }).click();
   await page.getByRole('button', { name: 'บันทึก' }).click();

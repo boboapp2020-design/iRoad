@@ -13,7 +13,7 @@ export function DemoBanner() {
   const { locale } = useI18n();
   if (!isDemo) return null;
   return (
-    <div className="bg-lane-500 px-3 py-1 text-center text-xs font-bold text-asphalt-950 no-print">
+    <div className="bg-amber-tile px-3 py-1 text-center text-xs font-semibold text-amber-ink no-print">
       {locale === 'th' ? 'โหมดทดลอง — ข้อมูลเก็บในเครื่องนี้เท่านั้น ไม่ใช่หลักฐานจริง' : 'DEMO MODE — data stays on this device; not real evidence'}
     </div>
   );
@@ -24,13 +24,13 @@ export function DemoAccounts({ onPick }: { onPick: (email: string, password: str
   const [busy, setBusy] = useState(false);
   if (!isDemo) return null;
   return (
-    <div className="space-y-2 rounded-3xl bg-white p-4 text-sm ring-2 ring-lane-500">
+    <div className="space-y-2 rounded-2xl bg-white p-4 text-sm ring-1 ring-asphalt-100">
       <div className="font-semibold text-asphalt-900">
         {locale === 'th' ? 'บัญชีทดลอง (รหัสผ่าน Demo123456) — แตะเพื่อกรอก' : 'Demo accounts (password Demo123456) — tap to fill'}
       </div>
       <div className="grid gap-1">
         {ACCOUNTS.map(([email, role]) => (
-          <button key={email} type="button" className="rounded-2xl bg-paper px-4 py-3 text-left ring-1 ring-asphalt-100 hover:ring-asphalt-300" onClick={() => onPick(email, 'Demo123456')}>
+          <button key={email} type="button" className="rounded-xl bg-paper px-4 py-3 text-left hover:bg-primary-50" onClick={() => onPick(email, 'Demo123456')}>
             <b>{t(role)}</b> · {email}
           </button>
         ))}

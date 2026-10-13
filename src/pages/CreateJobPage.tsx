@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapView } from '@/components/MapView';
-import { Alert, Button, Field, Input, PageHeader, Select, TextArea } from '@/components/ui';
+import { Alert, BottomBar, Button, Field, Input, PageHeader, Select, TextArea } from '@/components/ui';
 import { useGeolocation } from '@/features/capture/useGeolocation';
 import { api, DAMAGE_TYPES, PRIORITIES } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -49,9 +49,9 @@ export function CreateJobPage() {
   }
 
   return (
-    <div>
+    <div className="min-h-full bg-paper">
       <PageHeader title={t('job.create')} back="/" />
-      <form onSubmit={submit} className="space-y-4 p-4">
+      <form id="create-job" onSubmit={submit} className="mx-auto max-w-3xl space-y-4 p-4">
         <Field label={`${t('job.roadName')} *`}>
           <Input required maxLength={200} value={form.road_name} onChange={set('road_name')} placeholder="ถ.สุขุมวิท กม.12" />
         </Field>
@@ -73,9 +73,9 @@ export function CreateJobPage() {
         )}
         <Field label={t('job.notes')}><TextArea maxLength={2000} value={form.notes} onChange={set('notes')} /></Field>
 
-        <div className="space-y-2">
-          {geo.fix && <MapView points={[]} current={{ latitude: geo.fix.latitude, longitude: geo.fix.longitude, accuracy: geo.fix.accuracy }} className="h-40" />}
-          <div className="rounded-xl bg-white p-3 text-sm ring-1 ring-asphalt-100">
+        <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-asphalt-100">
+          {geo.fix && <MapView points={[]} current={{ latitude: geo.fix.latitude, longitude: geo.fix.longitude, accuracy: geo.fix.accuracy }} className="h-40 rounded-none" />}
+          <div className="p-3 text-sm">
             <div className="text-asphalt-500">{t('job.currentLocation')}</div>
             {geo.fix ? (
               <div className="flex justify-between font-medium"><span>{fmtCoord(geo.fix.latitude, geo.fix.longitude)}</span><span>± {fmtNum(geo.fix.accuracy)} m</span></div>
@@ -87,8 +87,10 @@ export function CreateJobPage() {
         </div>
 
         {error && <Alert kind="error">{error}</Alert>}
-        <Button type="submit" className="w-full" busy={busy} disabled={!form.road_name.trim()}>{t('job.nextBefore')}</Button>
       </form>
+      <BottomBar>
+        <Button type="submit" form="create-job" className="w-full" busy={busy} disabled={!form.road_name.trim()}>{t('job.nextBefore')}</Button>
+      </BottomBar>
     </div>
   );
 }

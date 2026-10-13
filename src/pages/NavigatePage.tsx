@@ -38,7 +38,7 @@ export function NavigatePage() {
         {geo.fix && <div className="text-sm text-asphalt-500">GPS ± {fmtNum(geo.fix.accuracy)} m</div>}
         {geo.status === 'denied' && <Alert kind="error">{t('capture.gpsDenied')}</Alert>}
         <Alert kind="info">{t('navigate.note')}</Alert>
-        <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="flex min-h-12 w-full items-center justify-center rounded-xl bg-asphalt-800 px-4 py-3 font-semibold text-white">
+        <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="flex min-h-13 w-full items-center justify-center rounded-xl bg-primary-600 px-4 py-3 font-semibold text-white hover:bg-primary-700">
           {t('navigate.openMaps')}
         </a>
         {canAfter && <LinkButton to={`/jobs/${id}/capture/AFTER`} variant="secondary" className="w-full">{t('navigate.startAfter')}</LinkButton>}

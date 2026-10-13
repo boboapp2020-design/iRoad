@@ -27,7 +27,7 @@ export function Compass({ heading, target, tolerance = 10, size = 120 }: { headi
       })}
       {heading !== null && (
         <g transform={`rotate(${heading} ${r} ${r})`}>
-          <polygon points={`${r},${10} ${r - 6},${r} ${r + 6},${r}`} fill="#facc15" />
+          <polygon points={`${r},${10} ${r - 6},${r} ${r + 6},${r}`} fill="#f2b01e" />
           <polygon points={`${r},${size - 10} ${r - 6},${r} ${r + 6},${r}`} fill="#94a3b8" />
         </g>
       )}

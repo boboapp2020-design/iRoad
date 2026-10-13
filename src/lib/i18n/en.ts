@@ -3,7 +3,7 @@ import type { Dictionary } from './th';
 export const en: Dictionary = {
   app: { name: 'Road Repair', tagline: 'Road repair tracking system' },
   common: {
-    m: 'm', save: 'Save', cancel: 'Cancel', back: 'Back', retry: 'Retry', loading: 'Loading...', confirm: 'Confirm',
+    resetDemo: 'Erase all demo data', resetDemoConfirm: 'Erase every demo job and photo on this device and start over?', account: 'My account', m: 'm', save: 'Save', cancel: 'Cancel', back: 'Back', retry: 'Retry', loading: 'Loading...', confirm: 'Confirm',
     close: 'Close', search: 'Search', all: 'All', yes: 'Yes', no: 'No', next: 'Next', none: '—', meters: '{v} m',
     degrees: '{v}°', signOut: 'Sign out', language: 'ภาษาไทย', required: 'Required', unknownError: 'Something went wrong',
     networkError: 'Could not reach the server. Your data may not be saved yet — please retry.',
@@ -26,7 +26,7 @@ export const en: Dictionary = {
     beforeHint: 'Take it anywhere — the app remembers the spot and direction', repairHint: 'Tap when the repair is finished to unlock the After photo',
     afterHint: 'Stand on the same spot, face the same way — the app guides you', reviewHint: 'Compare Before and After, then approve or send back',
   },
-  home: { hello: 'Hello {name}', todo: 'To do', todoEmpty: 'Nothing waiting on you', allJobs: 'All jobs', filters: 'Filters', newJobHint: 'Found a damaged road? Start a record' },
+  home: { clearFilters: 'Clear filters', noMatch: 'No jobs match your search', hello: 'Hello {name}', todo: 'To do', todoEmpty: 'Nothing waiting on you', allJobs: 'All jobs', filters: 'Filters', newJobHint: 'Found a damaged road? Start a record' },
   roles: { admin: 'Administrator', inspector: 'Inspector', reviewer: 'Reviewer' },
   nav: { home: 'Home', newJob: 'New job', admin: 'Admin', reports: 'Reports', map: 'Map' },
   status: {
@@ -71,7 +71,7 @@ export const en: Dictionary = {
     listView: 'List', mapView: 'Map', exportCsv: 'Export CSV', report: 'Report (PDF)',
   },
   job: {
-    create: 'Create repair job', roadName: 'Road name / place', location: 'Location description', damageType: 'Damage type',
+    result: 'Verification result', info: 'Job information', createdAt: 'Created', historyAll: 'Evidence details and full history', create: 'Create repair job', roadName: 'Road name / place', location: 'Location description', damageType: 'Damage type',
     description: 'Description', priority: 'Priority', assignee: 'Assigned inspector', notes: 'Notes',
     currentLocation: 'Current location (reference only)', locating: 'Locating...', nextBefore: 'Next: capture Before photo',
     code: 'Job code', details: 'Job details', beforePhoto: 'Before photo', afterPhoto: 'After photo',
@@ -87,7 +87,7 @@ export const en: Dictionary = {
     deleteJob: 'Delete repair job', deleteReason: 'Reason for deleting (at least 5 characters) — recorded in the log', deletedBanner: 'Deleted by {by} on {at}', deletedReason: 'Reason: {r}', deletedKept: 'Photos and evidence records are kept for audit', deleted: 'Job deleted',
   },
   capture: {
-    beforeTitle: 'Before capture', afterTitle: 'After capture', requestPermissions: 'Allow camera, location and compass',
+    openCamera: 'Open camera', introLead: 'The app needs these three things. Tap "Allow" when your phone asks.', beforeSavedNext: 'Next: finish the repair, then tap "Repair done" on the job.', inRange: 'Within limit', outOfRange: 'Not within limit yet', measuring: 'Measuring...', cardDistance: '{v} m from spot', cardDistanceWait: 'Finding distance', cardHeading: 'Facing {v}°', cardHeadingDiff: '{d}° off', resultTitle: 'Verification result', result_PASS: 'Sent to the reviewer', result_FAIL: 'Position or direction does not match; retake', result_INSUFFICIENT_DATA: 'Not enough data to confirm; retake', result_PENDING: 'Waiting for the server', beforeTitle: 'Before capture', afterTitle: 'After capture', requestPermissions: 'Allow camera, location and compass',
     permissionsIntro: 'The app needs the rear camera, high-accuracy GPS and the orientation sensor to record verifiable evidence.',
     criteria: 'Requirements before capture', critAccuracy: 'GPS accuracy ≤ {v} m', critDistance: 'Distance from original ≤ {v} m',
     critHeading: 'Heading difference ≤ {v}°', critFresh: 'Location fresher than {v} s',

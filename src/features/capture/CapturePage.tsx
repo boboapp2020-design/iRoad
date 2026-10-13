@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { bearingDeg, CURRENT_RULES, type VerificationReason } from '@verification';
-import { IconArrowUp, IconBack, IconCamera, IconCompass, IconHelp, IconNavigate, IconPin, IconRefresh, IconRotateLeft, IconRotateRight } from '@/components/icons';
+import { IconArrowUp, IconBack, IconCamera, IconCheckCircle, IconCompass, IconHelp, IconNavigate, IconPin, IconRefresh, IconRotateLeft, IconRotateRight } from '@/components/icons';
 import { isInAppBrowser } from '@/lib/device';
 import { turnDelta } from '@/lib/workflow';
 import { VerificationBadge } from '@/components/badges';
 import { Compass } from '@/components/Compass';
 import { EvidenceImage } from '@/components/EvidenceImage';
-import { Alert, Button, CheckIcon, KeyValue, PageHeader, Spinner } from '@/components/ui';
+import { Alert, BottomBar, Button, CheckIcon, KeyValue, PageHeader, Spinner } from '@/components/ui';
 import { api, ApiError, type CaptureType, type SubmitCapturePayload, type Verification } from '@/lib/api';
 import { deviceMetadata } from '@/lib/device';
 import { errorMessage, fmtBytes, fmtCoord, fmtDateTime, fmtNum, reasonText } from '@/lib/format';
@@ -205,16 +205,17 @@ export function CapturePage() {
     return (
       <div className="min-h-full bg-paper">
         <PageHeader title={title} back={`/jobs/${id}`} />
-        <div className="space-y-5 px-4 pb-8">
+        <div className="mx-auto max-w-3xl space-y-5 p-4">
           <div>
-            <div className="text-sm font-medium text-asphalt-500">{job.job_code}</div>
+            <div className="text-sm font-semibold text-asphalt-500">{job.job_code}</div>
             <div className="text-xl font-bold text-asphalt-950">{job.road_name}</div>
+            <p className="mt-1 text-[15px] text-asphalt-700">{t('capture.introLead')}</p>
           </div>
           {inAppBrowser && <Alert kind="warning">{t('capture.inAppBrowser')}</Alert>}
           <ul className="space-y-2">
             {needs.map((n) => (
-              <li key={n.title} className="flex gap-3 rounded-3xl bg-white p-4 ring-1 ring-asphalt-100">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-asphalt-800 text-lane-400">{n.icon}</span>
+              <li key={n.title} className="flex gap-3 rounded-2xl bg-white p-4 ring-1 ring-asphalt-100">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600">{n.icon}</span>
                 <span>
                   <span className="block font-semibold text-asphalt-950">{n.title}</span>
                   <span className="block text-[15px] text-asphalt-500">{n.text}</span>
@@ -222,7 +223,7 @@ export function CapturePage() {
               </li>
             ))}
           </ul>
-          <details className="rounded-2xl bg-white px-4 py-3 text-[15px] text-asphalt-700 ring-1 ring-asphalt-100">
+          <details className="rounded-2xl bg-white px-4 py-3.5 text-[15px] text-asphalt-700 ring-1 ring-asphalt-100">
             <summary className="cursor-pointer font-semibold text-asphalt-900">{t('capture.tipsTitle')}</summary>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>{t('capture.calibrate')}</li>
@@ -230,8 +231,10 @@ export function CapturePage() {
               <li>{t('capture.headingNote')}</li>
             </ul>
           </details>
-          <Button className="w-full" onClick={() => void startSensors()}><IconCamera />{t('capture.requestPermissions')}</Button>
         </div>
+        <BottomBar>
+          <Button className="w-full" onClick={() => void startSensors()}><IconCamera />{t('capture.openCamera')}</Button>
+        </BottomBar>
       </div>
     );
   }
@@ -241,14 +244,21 @@ export function CapturePage() {
     const r = submission.result;
     if (captureType === 'BEFORE') {
       return (
-        <div className="min-h-full bg-white">
+        <div className="min-h-full bg-paper">
           <PageHeader title={title} />
-          <div className="space-y-4 p-4">
-            <Alert kind="success">{t('capture.beforeSaved')}</Alert>
-            <EvidenceImage photoId={r.photo.id} alt="before" className="aspect-[4/3] w-full rounded-xl" />
-            <KeyValue label={t('job.sha256')} value={r.photo.sha256_hash} mono />
-            <Button className="w-full" onClick={() => navigate(`/jobs/${id}`, { replace: true })}>{t('navigate.backToJob')}</Button>
+          <div className="mx-auto max-w-3xl space-y-4 p-4">
+            <div className="flex items-center gap-3 rounded-2xl bg-go-50 p-4 text-go-700">
+              <IconCheckCircle size={32} className="shrink-0" />
+              <div>
+                <div className="text-lg font-bold">{t('capture.beforeSaved')}</div>
+                <div className="text-[15px] text-asphalt-700">{t('capture.beforeSavedNext')}</div>
+              </div>
+            </div>
+            <EvidenceImage photoId={r.photo.id} alt="before" className="aspect-[4/3] w-full rounded-2xl" />
           </div>
+          <BottomBar>
+            <Button className="w-full" onClick={() => navigate(`/jobs/${id}`, { replace: true })}>{t('navigate.backToJob')}</Button>
+          </BottomBar>
         </div>
       );
     }
@@ -260,11 +270,11 @@ export function CapturePage() {
     const m = captured.measurement;
     const rejectReasons = submission.kind === 'rejected' ? ((submission.error.details as { reasons?: VerificationReason[] } | null)?.reasons ?? []) : [];
     return (
-      <div className="min-h-full bg-white">
-        <PageHeader title={t('capture.review')} right={<button className="px-3 text-sm font-semibold text-asphalt-500" onClick={leave}>{t('common.cancel')}</button>} />
-        <div className="space-y-3 p-4">
-          <img src={captured.url} alt={title} className="w-full rounded-xl" />
-          <div>
+      <div className="min-h-full bg-paper">
+        <PageHeader title={t('capture.review')} right={<button className="px-3 text-[15px] font-semibold text-asphalt-500" onClick={leave}>{t('common.cancel')}</button>} />
+        <div className="mx-auto max-w-3xl space-y-3 p-4">
+          <img src={captured.url} alt={title} className="w-full rounded-2xl" />
+          <div className="rounded-2xl bg-white px-4 py-1 ring-1 ring-asphalt-100">
             <KeyValue label={t('job.capturedAt')} value={fmtDateTime(new Date(m.capturedAt as number).toISOString(), intlLocale)} />
             <KeyValue label={t('job.coords')} value={fmtCoord(m.latitude, m.longitude)} />
             <KeyValue label={t('job.accuracy')} value={t('common.meters', { v: fmtNum(m.accuracyM) })} />
@@ -284,18 +294,20 @@ export function CapturePage() {
               {rejectReasons.length > 0 && <ul className="mt-1 list-inside list-disc">{rejectReasons.map((r, i) => <li key={i}>{reasonText(t, r)}</li>)}</ul>}
             </Alert>
           )}
-          <div className="grid grid-cols-2 gap-2">
-            <Button variant="secondary" onClick={retake} disabled={submission.kind === 'uploading' || submission.kind === 'unknown'}>{t('capture.retake')}</Button>
-            {submission.kind === 'rejected' ? (
-              <Button onClick={retake}>{t('capture.retake')}</Button>
-            ) : (
-              <Button busy={submission.kind === 'uploading'} onClick={() => void save()}>
-                {submission.kind === 'unknown' ? t('common.retry') : captureType === 'BEFORE' ? t('capture.saveBefore') : t('capture.submitAfter')}
-              </Button>
-            )}
-          </div>
           {submission.kind === 'rejected' && submission.error instanceof ApiError && submission.error.code === 'CAPTURE_TOO_OLD' && <Alert kind="warning">{t('capture.tooOld')}</Alert>}
         </div>
+        <BottomBar>
+          {submission.kind === 'rejected' ? (
+            <Button className="w-full" onClick={retake}><IconCamera />{t('capture.retake')}</Button>
+          ) : (
+            <>
+              <Button variant="secondary" className="flex-1" onClick={retake} disabled={submission.kind === 'uploading' || submission.kind === 'unknown'}>{t('capture.retake')}</Button>
+              <Button className="flex-[2]" busy={submission.kind === 'uploading'} onClick={() => void save()}>
+                {submission.kind === 'unknown' ? t('common.retry') : captureType === 'BEFORE' ? t('capture.saveBefore') : t('capture.submitAfter')}
+              </Button>
+            </>
+          )}
+        </BottomBar>
       </div>
     );
   }
@@ -316,28 +328,36 @@ export function CapturePage() {
       : headingBad && turn !== null
         ? t(turn > 0 ? 'capture.turnRight' : 'capture.turnLeft', { d: Math.round(Math.abs(turn)) })
         : blocked ? t(blocked.message, blocked.params) : t('capture.waitingGps');
-  const chip = (key: GateCheck['key'], icon: ReactNode, label: string) => {
+  const checkCard = (key: GateCheck['key'], icon: ReactNode, label: string, detail?: string) => {
     const c = gate.checks.find((x) => x.key === key);
     if (!c) return null;
-    const cls = c.state === 'ok' ? 'bg-go-600 text-white' : c.state === 'bad' ? 'bg-stop-600 text-white' : 'bg-black/60 text-white';
+    const tone = c.state === 'ok' ? 'bg-go-50/95 text-go-700' : c.state === 'bad' ? 'bg-stop-50/95 text-stop-700' : 'bg-white/90 text-asphalt-700';
     return (
-      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${cls}`} title={t(c.message, c.params)}>
-        {icon}{label}
-      </span>
+      <div className={`flex min-w-0 flex-1 items-center gap-2 rounded-xl px-2.5 py-2 shadow-sm ${tone}`} title={t(c.message, c.params)}>
+        <span className="shrink-0">{c.state === 'ok' ? <IconCheckCircle size={22} /> : icon}</span>
+        <span className="min-w-0 leading-tight">
+          <span className="block truncate text-[14px] font-bold">{label}</span>
+          {detail && <span className="block truncate text-[12px] font-medium opacity-80">{detail}</span>}
+        </span>
+      </div>
     );
   };
+  const okWord = (key: GateCheck['key']) => {
+    const c = gate.checks.find((x) => x.key === key);
+    return c?.state === 'ok' ? t('capture.inRange') : c?.state === 'bad' ? t('capture.outOfRange') : t('capture.measuring');
+  };
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-asphalt-950 text-white">
+    <div className="fixed inset-0 z-40 flex flex-col bg-black text-white">
       <DemoBanner />
-      <div className="flex items-center gap-1 px-2 py-2 safe-top">
+      <div className="flex items-center gap-1 bg-black px-2 py-2 safe-top">
         <button aria-label={t('common.back')} className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-white/10" onClick={leave}><IconBack /></button>
-        <h1 className="flex-1 text-center text-base font-bold">{title}</h1>
+        <h1 className="flex-1 text-center text-[17px] font-bold">{title}</h1>
         <button className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-white/10" onClick={() => setShowCalib((v) => !v)} aria-label={t('capture.tipsTitle')} aria-expanded={showCalib}><IconHelp /></button>
       </div>
-      <div className={`relative flex-1 overflow-hidden ${ready ? 'ring-4 ring-inset ring-go-600' : ''}`}>
+      <div className={`relative flex-1 overflow-hidden transition ${ready ? 'ring-4 ring-inset ring-go-600' : ''}`}>
         <video ref={videoRef} playsInline muted autoPlay className="h-full w-full object-cover" />
         {camera.status !== 'live' && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-asphalt-950/90 p-6 text-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/90 p-6 text-center">
             {camera.status === 'starting' && <Spinner />}
             {camera.status === 'denied' && <p className="max-w-xs">{t('capture.cameraDenied')}</p>}
             {camera.status === 'unavailable' && <p className="max-w-xs">{t('capture.cameraUnavailable')}</p>}
@@ -346,27 +366,41 @@ export function CapturePage() {
             )}
           </div>
         )}
-        <div className="absolute inset-x-3 top-3 flex flex-wrap gap-2">
-          {chip('gps', <IconPin size={16} />, geo.fix ? `±${fmtNum(geo.fix.accuracy)} ${t('common.m')}` : t('capture.chipGps'))}
-          {captureType === 'AFTER' && chip('distance', <IconNavigate size={16} />, gate.distanceM !== null ? `${fmtNum(gate.distanceM)} ${t('common.m')}` : '—')}
-          {chip('heading', <IconCompass size={16} />, heading.reading ? `${Math.round(heading.reading.headingDeg)}°` : t('capture.chipHeading'))}
+        <div className="absolute inset-x-3 top-3 flex gap-2">
+          {captureType === 'AFTER'
+            ? checkCard('distance', <IconNavigate size={20} />, gate.distanceM !== null ? t('capture.cardDistance', { v: fmtNum(gate.distanceM) }) : t('capture.cardDistanceWait'), `${okWord('distance')} (≤ ${rules.maxDistanceM} ${t('common.m')})`)
+            : checkCard('gps', <IconPin size={20} />, geo.fix ? `GPS ±${fmtNum(geo.fix.accuracy)} ${t('common.m')}` : t('capture.chipGps'), okWord('gps'))}
+          {checkCard(
+            'heading',
+            <IconCompass size={20} />,
+            heading.reading ? t('capture.cardHeading', { v: Math.round(heading.reading.headingDeg) }) : t('capture.chipHeading'),
+            captureType === 'AFTER' && turn !== null ? `${t('capture.cardHeadingDiff', { d: Math.round(Math.abs(turn)) })} (≤ ${rules.maxHeadingDifferenceDeg}°)` : okWord('heading'),
+          )}
         </div>
         {captureType === 'AFTER' && !ready && (distanceBad || headingBad) && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden>
             <div className="flex h-36 w-36 items-center justify-center rounded-full bg-black/45">
               {distanceBad && walkRelative !== null ? (
-                <IconArrowUp size={84} strokeWidth={2.5} className="text-lane-400" style={{ transform: `rotate(${walkRelative}deg)` }} />
+                <IconArrowUp size={84} strokeWidth={2.5} className="text-white" style={{ transform: `rotate(${walkRelative}deg)` }} />
               ) : headingBad && turn !== null ? (
-                turn > 0 ? <IconRotateRight size={84} className="text-lane-400" /> : <IconRotateLeft size={84} className="text-lane-400" />
+                turn > 0 ? <IconRotateRight size={84} className="text-white" /> : <IconRotateLeft size={84} className="text-white" />
               ) : null}
             </div>
           </div>
         )}
-        <div className="absolute bottom-3 right-3">
-          <Compass heading={heading.reading?.headingDeg ?? null} target={captureType === 'AFTER' ? before?.heading_degrees : null} tolerance={rules.maxHeadingDifferenceDeg} size={92} />
+        <div className="absolute bottom-3 left-3 rounded-xl bg-black/60 px-3 py-2 font-mono text-[12px] leading-relaxed text-white/90">
+          <div>Lat: {geo.fix ? geo.fix.latitude.toFixed(6) : '—'}</div>
+          <div>Lng: {geo.fix ? geo.fix.longitude.toFixed(6) : '—'}</div>
+          <div>Accuracy: {geo.fix ? `${fmtNum(geo.fix.accuracy)} ${t('common.m')}` : '—'}</div>
+          <div>Heading: {heading.reading ? `${Math.round(heading.reading.headingDeg)}°` : '—'}</div>
         </div>
+        {captureType === 'AFTER' && (
+          <div className="absolute bottom-3 right-3">
+            <Compass heading={heading.reading?.headingDeg ?? null} target={before?.heading_degrees} tolerance={rules.maxHeadingDifferenceDeg} size={84} />
+          </div>
+        )}
         {(showCalib || captureError || heading.status === 'needs-permission' || geo.status === 'denied' || geo.status === 'unavailable') && (
-          <div className="absolute inset-x-3 top-14 space-y-2">
+          <div className="absolute inset-x-3 top-20 space-y-2">
             {heading.status === 'needs-permission' && <Button onClick={() => void heading.requestPermission()} className="w-full"><IconCompass />{t('capture.headingPermission')}</Button>}
             {geo.status === 'denied' && <Alert kind="error">{t('capture.gpsDenied')}</Alert>}
             {geo.status === 'unavailable' && <Alert kind="error">{t('capture.gpsUnavailable')}</Alert>}
@@ -380,8 +414,8 @@ export function CapturePage() {
                   <li>{t('capture.inAppBrowser')}</li>
                 </ul>
                 <div className="mt-2 font-mono text-xs text-asphalt-500">
-                  {geo.fix ? `${geo.fix.latitude.toFixed(6)}, ${geo.fix.longitude.toFixed(6)} · ±${fmtNum(geo.fix.accuracy)} m · ${fmtNum(Math.max(0, now - geo.fix.timestamp) / 1000)} s · n=${geo.fix.sampleCount}` : '—'}
-                  {heading.reading && ` · ${Math.round(heading.reading.headingDeg)}° ±${fmtNum(heading.reading.uncertaintyDeg)}`}
+                  {geo.fix ? `${fmtNum(Math.max(0, now - geo.fix.timestamp) / 1000)} s · n=${geo.fix.sampleCount}` : '—'}
+                  {heading.reading && ` · ±${fmtNum(heading.reading.uncertaintyDeg)}°`}
                   {captureType === 'AFTER' && before && ` · ${t('capture.target')} ${fmtNum(before.heading_degrees, 0)}°`}
                 </div>
               </div>
@@ -389,21 +423,23 @@ export function CapturePage() {
           </div>
         )}
       </div>
-      <div className="rounded-t-3xl bg-white px-5 pb-4 pt-4 text-asphalt-950 safe-bottom">
-        <p className={`mb-3 text-center text-lg font-bold leading-snug ${ready ? 'text-go-700' : ''}`} aria-live="polite">{instruction}</p>
+      <div className="bg-black px-5 pb-4 pt-3 safe-bottom">
+        <p className={`mb-3 text-center text-[17px] font-bold leading-snug ${ready ? 'text-go-600' : 'text-white'}`} aria-live="polite">{instruction}</p>
         <div className="flex items-center justify-between">
-          <div className="h-14 w-14 overflow-hidden rounded-2xl bg-asphalt-100">
+          <div className="h-14 w-14 overflow-hidden rounded-xl bg-white/10">
             {captureType === 'AFTER' && before ? <EvidenceImage photoId={before.id} variant="thumb" alt={t('capture.original')} className="h-14 w-14" /> : null}
           </div>
           <button
             aria-label={t('capture.capture')}
             disabled={!ready || capturing}
             onClick={() => void shutter()}
-            className={`flex h-20 w-20 items-center justify-center rounded-full transition ${ready ? 'bg-lane-500 shadow-[0_4px_0_var(--color-lane-600)] active:translate-y-0.5 active:shadow-none' : 'bg-asphalt-100'}`}
+            className={`flex h-20 w-20 items-center justify-center rounded-full border-4 transition ${ready ? 'border-white active:scale-95' : 'border-white/30'}`}
           >
-            {capturing ? <Spinner /> : <IconCamera size={34} className={ready ? 'text-asphalt-950' : 'text-asphalt-300'} />}
+            <span className={`flex h-[62px] w-[62px] items-center justify-center rounded-full ${ready ? 'bg-white' : 'bg-white/20'}`}>
+              {capturing ? <Spinner small /> : null}
+            </span>
           </button>
-          <button aria-label={t('capture.restartCamera')} className="flex h-14 w-14 items-center justify-center rounded-2xl bg-asphalt-100 text-asphalt-700" onClick={() => { geo.retry(); void camera.start(); }}><IconRefresh /></button>
+          <button aria-label={t('capture.restartCamera')} className="flex h-14 w-14 items-center justify-center rounded-full bg-white/10 text-white" onClick={() => { geo.retry(); void camera.start(); }}><IconRefresh /></button>
         </div>
       </div>
     </div>
@@ -415,36 +451,42 @@ function AfterResult({ verification: v, beforeId, afterId, onBack }: { verificat
   const beforeLimit = beforeAccuracyLimit(v.thresholds);
   const afterLimit = afterAccuracyLimit(v.thresholds);
   const row = (label: string, value: string, pass: boolean | null | undefined) => (
-    <div className="flex items-center justify-between border-b border-asphalt-100 py-2 text-sm">
+    <div className="flex items-center justify-between border-b border-asphalt-100 py-3 text-[15px] last:border-0">
       <span className="text-asphalt-500">{label}</span>
       <span className="flex items-center gap-2 font-semibold">{value}{pass !== undefined && <CheckIcon state={pass === null ? null : pass ? 'ok' : 'bad'} />}</span>
     </div>
   );
-  const box = v.overall_status === 'PASS' ? 'bg-go-50 ring-go-600/25' : v.overall_status === 'FAIL' ? 'bg-stop-50 ring-stop-600/25' : 'bg-caution-50 ring-lane-500/40';
+  const box = v.overall_status === 'PASS' ? 'bg-go-50 text-go-700' : v.overall_status === 'FAIL' ? 'bg-stop-50 text-stop-700' : 'bg-caution-50 text-caution-700';
   return (
-    <div className="min-h-full bg-white">
-      <PageHeader title={t('job.compare')} />
-      <div className="space-y-4 p-4">
+    <div className="min-h-full bg-paper">
+      <PageHeader title={t('capture.resultTitle')} />
+      <div className="mx-auto max-w-3xl space-y-4 p-4">
         <div className="grid grid-cols-2 gap-2">
           <div><div className="mb-1 text-center text-sm font-semibold">{t('job.beforePhoto')}</div><EvidenceImage photoId={beforeId} alt="before" className="aspect-[3/4] w-full rounded-xl" /></div>
           <div><div className="mb-1 text-center text-sm font-semibold">{t('job.afterPhoto')}</div><EvidenceImage photoId={afterId} alt="after" className="aspect-[3/4] w-full rounded-xl" /></div>
         </div>
-        <div>
+        <div className="rounded-2xl bg-white px-4 py-1 ring-1 ring-asphalt-100">
           {row(t('verification.distance'), v.measured_distance_m == null ? '—' : t('common.meters', { v: fmtNum(v.measured_distance_m) }), v.distance_pass)}
           {row(t('verification.headingDiff'), v.heading_difference_degrees == null ? '—' : `${fmtNum(v.heading_difference_degrees)}°`, v.heading_pass)}
           {row(t('verification.gpsBefore'), t('common.meters', { v: fmtNum(v.before_accuracy_m) }), beforeLimit === null ? undefined : v.before_accuracy_m == null ? null : v.before_accuracy_m <= beforeLimit)}
           {row(t('verification.gpsAfter'), t('common.meters', { v: fmtNum(v.after_accuracy_m) }), afterLimit === null ? undefined : v.after_accuracy_m == null ? null : v.after_accuracy_m <= afterLimit)}
         </div>
-        <div className={`rounded-2xl p-4 ring-1 ${box}`}>
-          <div className="flex items-center gap-3"><VerificationBadge status={v.overall_status} large /></div>
-          <p className="mt-2 text-sm">{t('capture.saved', { status: t(`verification.${v.overall_status}`) })}</p>
-          <p className="text-sm text-asphalt-500">{t(`verification.${v.overall_status}_desc`)}</p>
+        <div className={`rounded-2xl p-4 ${box}`}>
+          <div className="flex items-center gap-3">
+            {v.overall_status === 'PASS' ? <IconCheckCircle size={36} className="shrink-0" /> : <VerificationBadge status={v.overall_status} large />}
+            <div>
+              <div className="text-lg font-bold">{t(`verification.${v.overall_status}`)}</div>
+              <div className="text-[15px] text-asphalt-700">{t(`capture.result_${v.overall_status}`)}</div>
+            </div>
+          </div>
           {v.failure_reasons.filter((r) => r.severity !== 'WARNING' || v.overall_status === 'PASS').length > 0 && (
             <ul className="mt-2 list-inside list-disc text-sm">{v.failure_reasons.map((r, i) => <li key={i}>{reasonText(t, r)}</li>)}</ul>
           )}
         </div>
-        <Button className="w-full" onClick={onBack}>{t('navigate.backToJob')}</Button>
       </div>
+      <BottomBar>
+        <Button className="w-full" onClick={onBack}>{t('navigate.backToJob')}</Button>
+      </BottomBar>
     </div>
   );
 }

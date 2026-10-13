@@ -4,17 +4,25 @@ import { Alert, Button, Card, Field, Input, PageHeader } from '@/components/ui';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { DemoAccounts, DemoBanner } from '@/demo/DemoBanner';
+import { IconLock, IconMail } from '@/components/icons';
 import { env, isDemo } from '@/lib/env';
 import { errorMessage } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 
-/** A stretch of asphalt with the dashed lane line — the app's signature. */
+/** A country road running to the horizon, as in the client's mockup. */
 function RoadArt() {
   return (
-    <svg viewBox="0 0 400 120" className="h-28 w-full" aria-hidden preserveAspectRatio="none">
-      <path d="M150 0 H250 L400 120 H0 Z" fill="#2b3036" />
-      <path d="M198 6h4l1 14h-6zM196 32h8l2 22h-12zM193 70h14l3 34h-20z" fill="#ffc72c" />
-      <path d="M150 0 L0 120 M250 0 L400 120" stroke="#f6f7f4" strokeWidth="3" />
+    <svg viewBox="0 0 400 170" className="block h-40 w-full" aria-hidden preserveAspectRatio="xMidYMax slice">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#f4f7fb" /><stop offset="1" stopColor="#dbe8f7" /></linearGradient>
+        <linearGradient id="road" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#8a94a3" /><stop offset="1" stopColor="#4b5563" /></linearGradient>
+      </defs>
+      <rect width="400" height="170" fill="url(#sky)" />
+      <path d="M0 70 Q60 52 120 62 T260 58 T400 64 V170 H0Z" fill="#b9d3a8" />
+      <path d="M0 82 Q90 66 190 70 T400 76 V170 H0Z" fill="#8fbf7a" />
+      <path d="M192 68 H208 L330 170 H70 Z" fill="url(#road)" />
+      <path d="M192 68 L70 170 M208 68 L330 170" stroke="#f8fafc" strokeWidth="3" />
+      <path d="M199.4 74h1.2l.6 8h-2.4zM198.8 92h2.4l1 14h-4.4zM197.8 120h4.4l1.6 22h-7.6zM196.6 154h6.8l1.2 16h-9.2z" fill="#f2b01e" />
     </svg>
   );
 }
@@ -22,9 +30,9 @@ function RoadArt() {
 function LogoMark() {
   return (
     <svg viewBox="0 0 64 64" className="h-16 w-16" aria-hidden>
-      <rect width="64" height="64" rx="18" fill="#2b3036" />
-      <path d="M24 54 L29.5 10 L34.5 10 L40 54Z" fill="#3a4048" />
-      <path d="M31 14h2v8h-2zM30.6 28h2.8v9h-2.8zM30 43h4v11h-4z" fill="#ffc72c" />
+      <rect width="64" height="64" rx="16" fill="#18263a" />
+      <path d="M22 54 L29 12 L35 12 L42 54Z" fill="#f4f7fb" />
+      <path d="M31.2 18h1.6v7h-1.6zM31 31h2v8h-2zM30.6 45h2.8v9h-2.8z" fill="#f2b01e" />
     </svg>
   );
 }
@@ -60,34 +68,38 @@ export function LoginPage() {
     <div className="mx-auto flex min-h-full max-w-md flex-col bg-paper">
       <DemoBanner />
       <div className="flex justify-end p-3">
-        <button className="rounded-full px-3 py-2 text-sm font-semibold text-asphalt-700 hover:bg-asphalt-100" onClick={() => setLocale(locale === 'th' ? 'en' : 'th')}>{t('common.language')}</button>
+        <button className="rounded-full px-3 py-2 text-sm font-semibold text-primary-600 hover:bg-primary-50" onClick={() => setLocale(locale === 'th' ? 'en' : 'th')}>{t('common.language')}</button>
       </div>
-      <div className="px-6 pt-2">
+      <div className="flex flex-col items-center px-6 pt-2 text-center">
         <LogoMark />
-        <h1 className="mt-5 text-3xl font-bold text-asphalt-950">{t('app.name')}</h1>
-        <p className="text-lg text-asphalt-500">{t('app.tagline')}</p>
+        <h1 className="mt-4 text-[28px] font-bold leading-tight text-asphalt-950">{t('app.name')}</h1>
+        <p className="text-[17px] text-asphalt-500">{t('app.tagline')}</p>
       </div>
       <form onSubmit={onSubmit} className="space-y-4 px-6 pt-8" noValidate>
         {!env.apiUrl && !isDemo && <Alert kind="warning">{t('common.notConfigured')}</Alert>}
         <DemoAccounts onPick={(e, p) => { setEmail(e); setPassword(p); }} />
         {notice && <Alert kind="success">{notice}</Alert>}
-        <Field label={t('auth.email')}>
-          <Input type="email" autoComplete="username" inputMode="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        </Field>
-        <Field label={t('auth.password')}>
-          <Input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-        </Field>
+        <label className="relative block">
+          <span className="sr-only">{t('auth.email')}</span>
+          <IconMail size={20} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-asphalt-500" />
+          <Input type="email" className="pl-12" placeholder={t('auth.email')} autoComplete="username" inputMode="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        </label>
+        <label className="relative block">
+          <span className="sr-only">{t('auth.password')}</span>
+          <IconLock size={20} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-asphalt-500" />
+          <Input type="password" className="pl-12" placeholder={t('auth.password')} autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+        </label>
         {error && <Alert kind="error">{error}</Alert>}
         <Button type="submit" className="w-full" busy={busy} disabled={!email || !password}>
           {busy ? t('auth.signingIn') : t('auth.signIn')}
         </Button>
         <div className="text-center">
-          <Link to="/forgot" className="text-sm font-semibold text-asphalt-700 underline underline-offset-4">{t('auth.forgot')}</Link>
+          <Link to="/forgot" className="text-[15px] font-semibold text-primary-600">{t('auth.forgot')}</Link>
         </div>
       </form>
       <div className="mt-auto pt-10">
         <RoadArt />
-        <div className="bg-asphalt-800 pb-3 text-center text-xs text-asphalt-300">build {__APP_BUILD__}</div>
+        <div className="bg-[#8fbf7a] pb-2 text-center text-[11px] text-white/80">build {__APP_BUILD__}</div>
       </div>
     </div>
   );
