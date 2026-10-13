@@ -42,7 +42,7 @@ export function MapView({
   if (current) all.push([current.latitude, current.longitude]);
   const center: [number, number] = all[0] ?? [13.7563, 100.5018];
   return (
-    <div className={`overflow-hidden rounded-2xl ring-1 ring-slate-200 ${className}`}>
+    <div className={`overflow-hidden rounded-2xl ring-1 ring-asphalt-100 ${className}`}>
       <MapContainer center={center} zoom={16} className="h-full w-full" scrollWheelZoom>
         <TileLayer url={tileUrl()} attribution={env.mapAttribution} maxZoom={20} />
         {points.map((p) => (

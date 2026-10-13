@@ -75,14 +75,14 @@ export function CreateJobPage() {
 
         <div className="space-y-2">
           {geo.fix && <MapView points={[]} current={{ latitude: geo.fix.latitude, longitude: geo.fix.longitude, accuracy: geo.fix.accuracy }} className="h-40" />}
-          <div className="rounded-xl bg-white p-3 text-sm ring-1 ring-slate-200">
-            <div className="text-slate-500">{t('job.currentLocation')}</div>
+          <div className="rounded-xl bg-white p-3 text-sm ring-1 ring-asphalt-100">
+            <div className="text-asphalt-500">{t('job.currentLocation')}</div>
             {geo.fix ? (
               <div className="flex justify-between font-medium"><span>{fmtCoord(geo.fix.latitude, geo.fix.longitude)}</span><span>± {fmtNum(geo.fix.accuracy)} m</span></div>
             ) : (
               <div>{geo.status === 'denied' ? t('capture.gpsDenied') : geo.status === 'unavailable' ? t('capture.gpsUnavailable') : t('job.locating')}</div>
             )}
-            <div className="text-xs text-slate-400">{t('job.plannedNote')}</div>
+            <div className="text-xs text-asphalt-500">{t('job.plannedNote')}</div>
           </div>
         </div>
 

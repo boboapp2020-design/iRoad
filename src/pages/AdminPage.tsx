@@ -61,8 +61,8 @@ function Users() {
         {users.data?.users.map((u) => (
           <li key={u.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
             <div className="min-w-0 flex-1">
-              <div className={`font-semibold ${u.active ? '' : 'text-slate-400 line-through'}`}>{u.full_name}</div>
-              <div className="truncate text-slate-500">{u.email}</div>
+              <div className={`font-semibold ${u.active ? '' : 'text-asphalt-500 line-through'}`}>{u.full_name}</div>
+              <div className="truncate text-asphalt-500">{u.email}</div>
             </div>
             <Select className="w-auto py-2" value={u.role} disabled={u.id === me?.id} onChange={(e) => void act(() => api.updateUser(u.id, { role: e.target.value as Role }))}>
               {ROLES.map((r) => <option key={r} value={r}>{t(`roles.${r}`)}</option>)}
@@ -139,9 +139,9 @@ function Audit() {
       {chain && <Alert kind={chain.kind}>{chain.text}</Alert>}
       <ul className="max-h-[60vh] space-y-1 overflow-auto text-xs">
         {log.data?.entries.map((a) => (
-          <li key={a.id} className="border-b border-slate-100 py-1">
-            <span className="text-slate-400">{fmtDateTime(a.created_at, intlLocale)}</span> · <b>{a.action}</b> · {a.actor_name ?? 'system'}
-            <div className="break-all text-slate-500">{JSON.stringify(a.details)}</div>
+          <li key={a.id} className="border-b border-asphalt-100 py-1">
+            <span className="text-asphalt-500">{fmtDateTime(a.created_at, intlLocale)}</span> · <b>{a.action}</b> · {a.actor_name ?? 'system'}
+            <div className="break-all text-asphalt-500">{JSON.stringify(a.details)}</div>
           </li>
         ))}
       </ul>

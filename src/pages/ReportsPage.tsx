@@ -82,12 +82,12 @@ export function ReportsPage() {
         <header className="hidden print:block">
           <h1 className="text-xl font-bold">{t('report.title')}</h1>
         </header>
-        <div className="text-xs text-slate-500">{t('report.generated')}: {fmtDateTime(data?.generated_at, intlLocale)} · {rows.length}</div>
+        <div className="text-xs text-asphalt-500">{t('report.generated')}: {fmtDateTime(data?.generated_at, intlLocale)} · {rows.length}</div>
 
         {rows.map(({ job, before, after, verification: v, review }) => (
-          <section key={job.id} className="print-break space-y-2 rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+          <section key={job.id} className="print-break space-y-2 rounded-2xl bg-white p-4 ring-1 ring-asphalt-100">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div><div className="font-bold">{job.job_code}</div><div className="text-sm text-slate-600">{job.road_name}</div></div>
+              <div><div className="font-bold">{job.job_code}</div><div className="text-sm text-asphalt-500">{job.road_name}</div></div>
               <div className="flex gap-1"><StatusBadge status={job.status} /><VerificationBadge status={v?.overall_status ?? 'PENDING'} /></div>
             </div>
             {showPhotos && (
@@ -97,14 +97,14 @@ export function ReportsPage() {
               </div>
             )}
             <table className="w-full text-xs">
-              <thead><tr className="text-left text-slate-500"><th></th><th>{t('job.beforePhoto')}</th><th>{t('job.afterPhoto')}</th></tr></thead>
+              <thead><tr className="text-left text-asphalt-500"><th></th><th>{t('job.beforePhoto')}</th><th>{t('job.afterPhoto')}</th></tr></thead>
               <tbody>
-                <tr><td className="text-slate-500">{t('job.capturedAt')}</td><td>{fmtDateTime(before?.captured_at, intlLocale)}</td><td>{fmtDateTime(after?.captured_at, intlLocale)}</td></tr>
-                <tr><td className="text-slate-500">{t('job.coords')}</td><td>{fmtCoord(before?.latitude, before?.longitude)}</td><td>{fmtCoord(after?.latitude, after?.longitude)}</td></tr>
-                <tr><td className="text-slate-500">{t('job.accuracy')}</td><td>{fmtNum(before?.gps_accuracy_m)} m</td><td>{fmtNum(after?.gps_accuracy_m)} m</td></tr>
-                <tr><td className="text-slate-500">{t('job.heading')}</td><td>{fmtNum(before?.heading_degrees, 0)}°</td><td>{fmtNum(after?.heading_degrees, 0)}°</td></tr>
-                <tr><td className="text-slate-500">{t('job.inspector')}</td><td>{before?.captured_by_name ?? '—'}</td><td>{after?.captured_by_name ?? '—'}</td></tr>
-                <tr><td className="text-slate-500">SHA-256</td><td className="break-all font-mono">{before?.sha256_hash.slice(0, 16) ?? '—'}…</td><td className="break-all font-mono">{after?.sha256_hash.slice(0, 16) ?? '—'}…</td></tr>
+                <tr><td className="text-asphalt-500">{t('job.capturedAt')}</td><td>{fmtDateTime(before?.captured_at, intlLocale)}</td><td>{fmtDateTime(after?.captured_at, intlLocale)}</td></tr>
+                <tr><td className="text-asphalt-500">{t('job.coords')}</td><td>{fmtCoord(before?.latitude, before?.longitude)}</td><td>{fmtCoord(after?.latitude, after?.longitude)}</td></tr>
+                <tr><td className="text-asphalt-500">{t('job.accuracy')}</td><td>{fmtNum(before?.gps_accuracy_m)} m</td><td>{fmtNum(after?.gps_accuracy_m)} m</td></tr>
+                <tr><td className="text-asphalt-500">{t('job.heading')}</td><td>{fmtNum(before?.heading_degrees, 0)}°</td><td>{fmtNum(after?.heading_degrees, 0)}°</td></tr>
+                <tr><td className="text-asphalt-500">{t('job.inspector')}</td><td>{before?.captured_by_name ?? '—'}</td><td>{after?.captured_by_name ?? '—'}</td></tr>
+                <tr><td className="text-asphalt-500">SHA-256</td><td className="break-all font-mono">{before?.sha256_hash.slice(0, 16) ?? '—'}…</td><td className="break-all font-mono">{after?.sha256_hash.slice(0, 16) ?? '—'}…</td></tr>
               </tbody>
             </table>
             {v && (
@@ -116,7 +116,7 @@ export function ReportsPage() {
             {review && <div className="text-xs">{t('job.reviews')}: <b>{t(`status.${review.decision}`)}</b> — {review.reason} ({review.reviewer_name}, {fmtDateTime(review.created_at, intlLocale)})</div>}
           </section>
         ))}
-        <p className="text-xs text-slate-500">{t('verification.noAiNote')}</p>
+        <p className="text-xs text-asphalt-500">{t('verification.noAiNote')}</p>
       </div>
     </div>
   );

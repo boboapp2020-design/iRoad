@@ -8,26 +8,23 @@ import { env, isDemo } from '@/lib/env';
 import { errorMessage } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 
+/** A stretch of asphalt with the dashed lane line — the app's signature. */
 function RoadArt() {
   return (
-    <svg viewBox="0 0 400 160" className="h-40 w-full" aria-hidden>
-      <defs>
-        <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#bfdbfe" /><stop offset="1" stopColor="#eff6ff" /></linearGradient>
-      </defs>
-      <rect width="400" height="160" fill="url(#sky)" />
-      <path d="M0 95 Q100 70 200 90 T400 85 V160 H0Z" fill="#86efac" />
-      <path d="M170 160 L195 85 L205 85 L230 160Z" fill="#475569" />
-      <path d="M199 90 L201 90 L202 100 L198 100Z M198 110 L202 110 L203 125 L197 125Z M196 138 L204 138 L206 158 L194 158Z" fill="#facc15" />
+    <svg viewBox="0 0 400 120" className="h-28 w-full" aria-hidden preserveAspectRatio="none">
+      <path d="M150 0 H250 L400 120 H0 Z" fill="#2b3036" />
+      <path d="M198 6h4l1 14h-6zM196 32h8l2 22h-12zM193 70h14l3 34h-20z" fill="#ffc72c" />
+      <path d="M150 0 L0 120 M250 0 L400 120" stroke="#f6f7f4" strokeWidth="3" />
     </svg>
   );
 }
 
 function LogoMark() {
   return (
-    <svg viewBox="0 0 64 64" className="mx-auto h-16 w-16" aria-hidden>
-      <rect width="64" height="64" rx="14" fill="#1e293b" />
-      <path d="M22 54 L29 12 L35 12 L42 54Z" fill="#f8fafc" />
-      <path d="M31.2 18h1.6v7h-1.6zM31 31h2v8h-2zM30.6 45h2.8v9h-2.8z" fill="#1e293b" />
+    <svg viewBox="0 0 64 64" className="h-16 w-16" aria-hidden>
+      <rect width="64" height="64" rx="18" fill="#2b3036" />
+      <path d="M24 54 L29.5 10 L34.5 10 L40 54Z" fill="#3a4048" />
+      <path d="M31 14h2v8h-2zM30.6 28h2.8v9h-2.8zM30 43h4v11h-4z" fill="#ffc72c" />
     </svg>
   );
 }
@@ -60,15 +57,15 @@ export function LoginPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-full max-w-md flex-col bg-white">
+    <div className="mx-auto flex min-h-full max-w-md flex-col bg-paper">
       <DemoBanner />
       <div className="flex justify-end p-3">
-        <button className="text-sm font-semibold text-brand-700" onClick={() => setLocale(locale === 'th' ? 'en' : 'th')}>{t('common.language')}</button>
+        <button className="rounded-full px-3 py-2 text-sm font-semibold text-asphalt-700 hover:bg-asphalt-100" onClick={() => setLocale(locale === 'th' ? 'en' : 'th')}>{t('common.language')}</button>
       </div>
-      <div className="px-6 pt-6 text-center">
+      <div className="px-6 pt-2">
         <LogoMark />
-        <h1 className="mt-4 text-2xl font-bold">{t('app.name')}</h1>
-        <p className="text-slate-600">{t('app.tagline')}</p>
+        <h1 className="mt-5 text-3xl font-bold text-asphalt-950">{t('app.name')}</h1>
+        <p className="text-lg text-asphalt-500">{t('app.tagline')}</p>
       </div>
       <form onSubmit={onSubmit} className="space-y-4 px-6 pt-8" noValidate>
         {!env.apiUrl && !isDemo && <Alert kind="warning">{t('common.notConfigured')}</Alert>}
@@ -85,12 +82,12 @@ export function LoginPage() {
           {busy ? t('auth.signingIn') : t('auth.signIn')}
         </Button>
         <div className="text-center">
-          <Link to="/forgot" className="text-sm font-semibold text-brand-700">{t('auth.forgot')}</Link>
+          <Link to="/forgot" className="text-sm font-semibold text-asphalt-700 underline underline-offset-4">{t('auth.forgot')}</Link>
         </div>
       </form>
-      <div className="mt-auto pt-8">
+      <div className="mt-auto pt-10">
         <RoadArt />
-        <div className="pb-2 text-center text-xs text-slate-400">build {__APP_BUILD__}</div>
+        <div className="bg-asphalt-800 pb-3 text-center text-xs text-asphalt-300">build {__APP_BUILD__}</div>
       </div>
     </div>
   );
@@ -197,7 +194,7 @@ export function AccountPage() {
       <div className="space-y-4 p-4">
         {user?.must_change_password && <Alert kind="warning">{t('auth.mustChange')}</Alert>}
         <Card>
-          <div className="text-sm text-slate-600">{user?.email}</div>
+          <div className="text-sm text-asphalt-500">{user?.email}</div>
           <div className="font-semibold">{user?.full_name} · {user ? t(`roles.${user.role}`) : ''}</div>
         </Card>
         {msg && <Alert kind={msg.kind}>{msg.text}</Alert>}

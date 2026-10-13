@@ -35,10 +35,10 @@ export function NavigatePage() {
       />
       <div className="space-y-3 p-4">
         <div className="text-2xl font-bold">{distance === null ? distanceText : t('navigate.distance', { v: distanceText })}</div>
-        {geo.fix && <div className="text-sm text-slate-500">GPS ± {fmtNum(geo.fix.accuracy)} m</div>}
+        {geo.fix && <div className="text-sm text-asphalt-500">GPS ± {fmtNum(geo.fix.accuracy)} m</div>}
         {geo.status === 'denied' && <Alert kind="error">{t('capture.gpsDenied')}</Alert>}
         <Alert kind="info">{t('navigate.note')}</Alert>
-        <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="flex min-h-12 w-full items-center justify-center rounded-xl bg-brand-700 px-4 py-3 font-semibold text-white">
+        <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="flex min-h-12 w-full items-center justify-center rounded-xl bg-asphalt-800 px-4 py-3 font-semibold text-white">
           {t('navigate.openMaps')}
         </a>
         {canAfter && <LinkButton to={`/jobs/${id}/capture/AFTER`} variant="secondary" className="w-full">{t('navigate.startAfter')}</LinkButton>}

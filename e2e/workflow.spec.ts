@@ -61,7 +61,7 @@ async function login(page: Page, email: string, password: string) {
   await page.getByLabel('อีเมล').fill(email);
   await page.getByLabel('รหัสผ่าน').fill(password);
   await page.getByRole('button', { name: 'เข้าสู่ระบบ' }).click();
-  await expect(page.getByRole('heading', { name: 'หน้าหลัก' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^สวัสดี/ })).toBeVisible();
 }
 
 test('inspector Before → repair → After (PASS) → reviewer approves', async ({ browser }) => {
@@ -86,9 +86,9 @@ test('inspector Before → repair → After (PASS) → reviewer approves', async
   await page.getByRole('button', { name: 'ถัดไป: ถ่ายภาพก่อนซ่อม' }).click();
 
   // Before capture
-  await page.getByRole('button', { name: 'อนุญาตกล้อง ตำแหน่ง และเข็มทิศ' }).click();
-  await expect(page.getByText('GPS accuracy: 2.1 ม. — บันทึกเป็นจุดอ้างอิง', { exact: true })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText('ทิศทาง: 125°', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: /อนุญาตกล้อง ตำแหน่ง และเข็มทิศ/ }).click();
+  await expect(page.getByText('±2.1 ม.', { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('125°', { exact: true })).toBeVisible();
   const shutter = page.getByRole('button', { name: 'ถ่ายภาพ' });
   await expect(shutter).toBeEnabled({ timeout: 15_000 });
   await page.screenshot({ path: 'test-results/03-before-camera.png' });
@@ -102,25 +102,25 @@ test('inspector Before → repair → After (PASS) → reviewer approves', async
   // Job detail -> mark repaired
   await expect(page.getByText('รอซ่อม', { exact: true })).toBeVisible();
   page.once('dialog', (d) => void d.accept());
-  await page.getByRole('button', { name: /แจ้งว่าซ่อมเสร็จแล้ว/ }).click();
+  await page.getByRole('button', { name: /ซ่อมเสร็จแล้ว/ }).click();
   await expect(page.getByText('รอถ่ายหลังซ่อม', { exact: true })).toBeVisible();
   await page.screenshot({ path: 'test-results/05-job-detail.png', fullPage: true });
 
   // After capture: start too far away and rotated -> shutter must stay disabled
   position = { latitude: ORIGIN.latitude + 4.2 / M_PER_DEG, longitude: ORIGIN.longitude, accuracy: 2.4 };
   heading = 137;
-  await page.getByRole('link', { name: /เริ่มถ่ายภาพหลังซ่อม/ }).click();
-  await page.getByRole('button', { name: 'อนุญาตกล้อง ตำแหน่ง และเข็มทิศ' }).click();
-  await expect(page.getByText('คุณอยู่ห่างจากจุดเดิม 4.2 ม. ขยับเข้าไปใกล้อีก', { exact: true })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText(/^ทิศทางต่างกัน 12° หมุนอุปกรณ์/)).toBeVisible();
+  await page.getByRole('link', { name: /ถ่ายภาพหลังซ่อม/ }).first().click();
+  await page.getByRole('button', { name: /อนุญาตกล้อง ตำแหน่ง และเข็มทิศ/ }).click();
+  await expect(page.getByText('เดินตามลูกศรอีก 4.2 ม.', { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('137°', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'ถ่ายภาพ' })).toBeDisabled();
   await page.screenshot({ path: 'test-results/06-after-blocked.png' });
 
   // Move into tolerance
   position = { latitude: ORIGIN.latitude + 0.6 / M_PER_DEG, longitude: ORIGIN.longitude, accuracy: 2.4 };
   heading = 128;
-  await expect(page.getByText('ระยะจากจุดเดิม: 0.6 ม. — อยู่ในเกณฑ์', { exact: true })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText('ทิศทาง: 128° ต่างจากเดิม 3° — อยู่ในเกณฑ์', { exact: true })).toBeVisible();
+  await expect(page.getByText('0.6 ม.', { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('ตรงจุดแล้ว กดถ่ายได้เลย', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'ถ่ายภาพ' })).toBeEnabled({ timeout: 10_000 });
   await page.screenshot({ path: 'test-results/07-after-ready.png' });
   await page.getByRole('button', { name: 'ถ่ายภาพ' }).click();
@@ -142,7 +142,7 @@ test('inspector Before → repair → After (PASS) → reviewer approves', async
   const rpage = await rctx.newPage();
   await wireBackend(rpage, b);
   await login(rpage, accounts.reviewer, 'Passw0rd1234');
-  await rpage.getByText(jobs[0].job_code).click();
+  await rpage.getByText(jobs[0].job_code).first().click();
   await rpage.getByPlaceholder('เหตุผล (จำเป็น)').fill('ผิวถนนเรียบร้อย ไม่มีรอยแตก');
   await rpage.getByRole('button', { name: 'อนุมัติ', exact: true }).click();
   await expect(rpage.getByText('อนุมัติแล้ว').first()).toBeVisible();
@@ -165,7 +165,7 @@ test('lost response during upload → no false PASS; retry does not duplicate', 
   await page.getByRole('link', { name: /สร้างรายการใหม่/ }).first().click();
   await page.getByLabel(/ชื่อถนน/).fill('ถ.ลาดกระบัง');
   await page.getByRole('button', { name: 'ถัดไป: ถ่ายภาพก่อนซ่อม' }).click();
-  await page.getByRole('button', { name: 'อนุญาตกล้อง ตำแหน่ง และเข็มทิศ' }).click();
+  await page.getByRole('button', { name: /อนุญาตกล้อง ตำแหน่ง และเข็มทิศ/ }).click();
   await expect(page.getByRole('button', { name: 'ถ่ายภาพ' })).toBeEnabled({ timeout: 15_000 });
   await page.getByRole('button', { name: 'ถ่ายภาพ' }).click();
   fail.count = 1;
@@ -190,7 +190,7 @@ test('unsupported heading sensor blocks capture', async ({ browser }) => {
   await page.getByRole('link', { name: /สร้างรายการใหม่/ }).first().click();
   await page.getByLabel(/ชื่อถนน/).fill('ถ.บางนา');
   await page.getByRole('button', { name: 'ถัดไป: ถ่ายภาพก่อนซ่อม' }).click();
-  await page.getByRole('button', { name: 'อนุญาตกล้อง ตำแหน่ง และเข็มทิศ' }).click();
+  await page.getByRole('button', { name: /อนุญาตกล้อง ตำแหน่ง และเข็มทิศ/ }).click();
   await expect(page.getByText('ไม่มีเซ็นเซอร์ทิศทาง ไม่สามารถดำเนินการตรวจสอบได้').first()).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('button', { name: 'ถ่ายภาพ' })).toBeDisabled();
 });
@@ -218,7 +218,7 @@ test('standing still (watchPosition goes quiet) can still capture after 12 s', a
   await page.getByRole('link', { name: /สร้างรายการใหม่/ }).first().click();
   await page.getByLabel(/ชื่อถนน/).fill('ถ.นิ่ง');
   await page.getByRole('button', { name: 'ถัดไป: ถ่ายภาพก่อนซ่อม' }).click();
-  await page.getByRole('button', { name: 'อนุญาตกล้อง ตำแหน่ง และเข็มทิศ' }).click();
+  await page.getByRole('button', { name: /อนุญาตกล้อง ตำแหน่ง และเข็มทิศ/ }).click();
   await page.waitForTimeout(12_000);
   await expect(page.getByRole('button', { name: 'ถ่ายภาพ' })).toBeEnabled({ timeout: 5_000 });
   await page.getByRole('button', { name: 'ถ่ายภาพ' }).click();
@@ -237,9 +237,9 @@ test('Before photo can be taken anywhere, even with 9 m GPS accuracy', async ({ 
   await page.getByRole('link', { name: /สร้างรายการใหม่/ }).first().click();
   await page.getByLabel(/ชื่อถนน/).fill('ถ.ใต้ต้นไม้');
   await page.getByRole('button', { name: 'ถัดไป: ถ่ายภาพก่อนซ่อม' }).click();
-  await expect(page.getByText(/ถ่ายที่ไหนก็ได้/)).toBeVisible();
-  await page.getByRole('button', { name: 'อนุญาตกล้อง ตำแหน่ง และเข็มทิศ' }).click();
-  await expect(page.getByText('GPS accuracy: 9.0 ม. — บันทึกเป็นจุดอ้างอิง', { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/ถ่ายตรงไหนก็ได้/).first()).toBeVisible();
+  await page.getByRole('button', { name: /อนุญาตกล้อง ตำแหน่ง และเข็มทิศ/ }).click();
+  await expect(page.getByText('±9.0 ม.', { exact: true })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('button', { name: 'ถ่ายภาพ' })).toBeEnabled({ timeout: 10_000 });
   await page.getByRole('button', { name: 'ถ่ายภาพ' }).click();
   await page.getByRole('button', { name: 'บันทึก' }).click();
@@ -266,7 +266,7 @@ test('inspector deletes a job with a reason; it disappears and is logged', async
   await expect(confirm).toBeDisabled(); // reason required
   await page.locator('textarea').last().fill('สร้างซ้ำ ใช้งาน RR อื่นแทน');
   await confirm.click();
-  await expect(page.getByRole('heading', { name: 'หน้าหลัก' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^สวัสดี/ })).toBeVisible();
   await expect(page.getByText('ถ.สร้างผิด')).toHaveCount(0);
   const job = b.sheet('repair_jobs').rows()[0];
   expect(job).toMatchObject({ status: 'DELETED', delete_reason: 'สร้างซ้ำ ใช้งาน RR อื่นแทน' });

@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
+import { IconCamera, IconImages, IconNavigate, IconReport, IconWrench } from '@/components/icons';
+import { RoadProgress } from '@/components/RoadProgress';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { StatusBadge, VerificationBadge } from '@/components/badges';
 import { EvidenceImage } from '@/components/EvidenceImage';
@@ -53,7 +55,7 @@ function ReviewPanel({ detail, onDone }: { detail: JobDetail; onDone: () => void
   return (
     <Card className="space-y-3">
       <h2 className="font-bold">{t('review.title')}</h2>
-      <p className="text-sm text-slate-500">{t('review.separate')}</p>
+      <p className="text-sm text-asphalt-500">{t('review.separate')}</p>
       {!canApprove && <Alert kind="warning">{t('review.cannotApprove')}</Alert>}
       <TextArea placeholder={t('review.reason')} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={2000} />
       {error && <Alert kind="error">{error}</Alert>}
@@ -159,6 +161,44 @@ function AdminTools({ detail, reload }: { detail: JobDetail; reload: () => void 
   );
 }
 
+/** One clear "what to do now" card with a single primary action. */
+function NextStepCard({ job, canCapture, canReview, hasBefore, busy, onMarkRepaired }: {
+  job: JobDetail['job']; canCapture: boolean; canReview: boolean; hasBefore: boolean; busy: boolean; onMarkRepaired: () => void;
+}) {
+  const { t } = useI18n();
+  let title = '';
+  let hint = '';
+  let action: ReactNode = null;
+  if (job.status === 'APPROVED') title = t('next.done');
+  else if (job.status === 'CANCELLED' || job.status === 'DELETED') title = t('next.stopped');
+  else if (job.status === 'DRAFT') {
+    title = canCapture ? t('next.before') : t('next.waitBefore');
+    hint = t('next.beforeHint');
+    if (canCapture) action = <LinkButton to={`/jobs/${job.id}/capture/BEFORE`} className="w-full"><IconCamera />{t('next.before')}</LinkButton>;
+  } else if (job.status === 'AWAITING_REPAIR') {
+    title = canCapture ? t('next.markRepaired') : t('next.waitRepair');
+    hint = t('next.repairHint');
+    if (canCapture) action = <Button className="w-full" busy={busy} onClick={onMarkRepaired}><IconWrench />{t('next.markRepaired')}</Button>;
+  } else if (AFTER_STATUSES.includes(job.status)) {
+    const label = job.status === 'AWAITING_AFTER_PHOTO' ? t('next.after') : t('next.recapture');
+    title = canCapture ? label : t('next.waitAfter');
+    hint = t('next.afterHint');
+    if (canCapture && hasBefore) action = <LinkButton to={`/jobs/${job.id}/capture/AFTER`} className="w-full"><IconCamera />{label}</LinkButton>;
+  } else if (job.status === 'PENDING_REVIEW') {
+    title = canReview ? t('next.review') : t('next.waitReview');
+    hint = canReview ? t('next.reviewHint') : '';
+  }
+  const finished = job.status === 'APPROVED';
+  return (
+    <section className={`rounded-3xl p-5 ${finished ? 'bg-go-50 ring-1 ring-go-600/25' : 'bg-white ring-2 ring-asphalt-800'}`} aria-label={t('next.title')}>
+      <div className="text-sm font-semibold text-asphalt-500">{t('next.title')}</div>
+      <div className={`text-xl font-bold ${finished ? 'text-go-700' : 'text-asphalt-950'}`}>{title}</div>
+      {hint && <p className="mt-1 text-asphalt-500">{hint}</p>}
+      {action && <div className="mt-4">{action}</div>}
+    </section>
+  );
+}
+
 export function JobDetailPage() {
   const { id = '' } = useParams();
   const { t, intlLocale } = useI18n();
@@ -205,13 +245,15 @@ export function JobDetailPage() {
       <PageHeader title={t('job.details')} back="/" />
       <div className="space-y-4 p-4">
         <div>
-          <div className="text-2xl font-bold">{job.job_code}</div>
-          <div className="text-slate-600">📍 {job.road_name}</div>
+          <div className="text-sm font-medium text-asphalt-500">{job.job_code}</div>
+          <h2 className="text-2xl font-bold leading-snug text-asphalt-950">{job.road_name}</h2>
           <div className="mt-2 flex flex-wrap gap-2">
             <StatusBadge status={job.status} />
-            <VerificationBadge status={currentV?.overall_status ?? 'PENDING'} />
+            {currentV && <VerificationBadge status={currentV.overall_status} />}
           </div>
         </div>
+
+        <RoadProgress status={job.status} />
 
         {job.status === 'DELETED' && (
           <Alert kind="error">
@@ -221,20 +263,24 @@ export function JobDetailPage() {
           </Alert>
         )}
 
+        {actionError && <Alert kind="error">{actionError}</Alert>}
+        <NextStepCard
+          job={job}
+          canCapture={permissions.can_capture}
+          canReview={permissions.can_review}
+          hasBefore={!!before}
+          busy={busy}
+          onMarkRepaired={markRepaired}
+        />
+        {after && <LinkButton to={`/jobs/${job.id}/compare`} variant="secondary" className="w-full"><IconImages />{t('job.compare')}</LinkButton>}
+
         {before && before.latitude != null && before.longitude != null && (
           <div className="relative">
             <MapView points={[{ id: before.id, latitude: before.latitude, longitude: before.longitude, label: job.job_code }]} className="h-48" />
-            <LinkButton to={`/jobs/${job.id}/navigate`} variant="secondary" className="absolute bottom-3 left-1/2 z-[500] -translate-x-1/2 shadow">📍 {t('job.navigate')}</LinkButton>
+            <LinkButton to={`/jobs/${job.id}/navigate`} variant="secondary" className="absolute bottom-3 left-1/2 z-[500] -translate-x-1/2 whitespace-nowrap shadow-lg"><IconNavigate size={18} />{t('job.navigate')}</LinkButton>
           </div>
         )}
 
-        {actionError && <Alert kind="error">{actionError}</Alert>}
-        <div className="grid gap-2">
-          {permissions.can_capture && job.status === 'DRAFT' && <LinkButton to={`/jobs/${job.id}/capture/BEFORE`} className="w-full">📷 {t('job.startBefore')}</LinkButton>}
-          {permissions.can_capture && job.status === 'AWAITING_REPAIR' && <Button className="w-full" busy={busy} onClick={markRepaired}>🛠 {t('job.markRepaired')}</Button>}
-          {permissions.can_capture && AFTER_STATUSES.includes(job.status) && before && <LinkButton to={`/jobs/${job.id}/capture/AFTER`} className="w-full">📷 {t('job.startAfter')}</LinkButton>}
-          {after && <LinkButton to={`/jobs/${job.id}/compare`} variant="secondary" className="w-full">⇆ {t('job.compare')}</LinkButton>}
-        </div>
 
         {permissions.can_review && <ReviewPanel detail={data} onDone={() => void reload()} />}
 
@@ -264,19 +310,19 @@ export function JobDetailPage() {
 
         <Card>
           <h2 className="mb-2 font-bold">{t('job.history')}</h2>
-          {sortedV.length === 0 && <div className="text-sm text-slate-500">{t('verification.PENDING_desc')}</div>}
+          {sortedV.length === 0 && <div className="text-sm text-asphalt-500">{t('verification.PENDING_desc')}</div>}
           <ul className="space-y-2">
             {sortedV.map((v) => (
-              <li key={v.id} className="rounded-xl bg-slate-50 p-3 text-sm">
+              <li key={v.id} className="rounded-xl bg-paper p-3 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold">{t('job.attempt', { n: v.attempt_number })}{v.id === job.current_verification_id ? ' ★' : ''}</span>
                   <VerificationBadge status={v.overall_status} />
                 </div>
-                <div className="mt-1 text-slate-600">
+                <div className="mt-1 text-asphalt-500">
                   {t('verification.distance')}: {v.measured_distance_m == null ? '—' : t('common.meters', { v: fmtNum(v.measured_distance_m) })} ·{' '}
                   {t('verification.headingDiff')}: {v.heading_difference_degrees == null ? '—' : `${fmtNum(v.heading_difference_degrees)}°`}
                 </div>
-                <div className="text-xs text-slate-400">{fmtDateTime(v.verified_at, intlLocale)} · {v.rules_version}</div>
+                <div className="text-xs text-asphalt-500">{fmtDateTime(v.verified_at, intlLocale)} · {v.rules_version}</div>
               </li>
             ))}
           </ul>
@@ -287,10 +333,10 @@ export function JobDetailPage() {
             <h2 className="mb-2 font-bold">{t('job.reviews')}</h2>
             <ul className="space-y-2 text-sm">
               {data.reviews.map((r) => (
-                <li key={r.id} className="rounded-xl bg-slate-50 p-3">
+                <li key={r.id} className="rounded-xl bg-paper p-3">
                   <div className="font-semibold">{t(`status.${r.decision}`)} — {r.reviewer_name}</div>
                   <div>{r.reason}</div>
-                  <div className="text-xs text-slate-400">{fmtDateTime(r.created_at, intlLocale)}</div>
+                  <div className="text-xs text-asphalt-500">{fmtDateTime(r.created_at, intlLocale)}</div>
                 </li>
               ))}
             </ul>
@@ -308,13 +354,13 @@ export function JobDetailPage() {
           </Card>
         )}
 
-        <details className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+        <details className="rounded-2xl bg-white p-4 ring-1 ring-asphalt-100">
           <summary className="cursor-pointer font-bold">{t('job.audit')} ({data.audit.length})</summary>
           <ul className="mt-2 space-y-1 text-xs">
             {[...data.audit].reverse().map((a) => (
-              <li key={a.id} className="border-b border-slate-100 py-1">
-                <span className="text-slate-400">{fmtDateTime(a.created_at, intlLocale)}</span> · <b>{a.action}</b> · {a.actor_name ?? 'system'}
-                {a.details && Object.keys(a.details).length > 0 && <div className="break-all text-slate-500">{JSON.stringify(a.details)}</div>}
+              <li key={a.id} className="border-b border-asphalt-100 py-1">
+                <span className="text-asphalt-500">{fmtDateTime(a.created_at, intlLocale)}</span> · <b>{a.action}</b> · {a.actor_name ?? 'system'}
+                {a.details && Object.keys(a.details).length > 0 && <div className="break-all text-asphalt-500">{JSON.stringify(a.details)}</div>}
               </li>
             ))}
           </ul>
@@ -327,7 +373,7 @@ export function JobDetailPage() {
           <ReasonPrompt
             label={t('job.deleteReason')}
             minLength={5}
-            buttonLabel={`🗑 ${t('job.deleteJob')}`}
+            buttonLabel={t('job.deleteJob')}
             onSubmit={async (r) => {
               await api.deleteJob(job.id, r);
               navigate('/', { replace: true });
@@ -335,7 +381,7 @@ export function JobDetailPage() {
           />
         )}
         {user?.role === 'admin' && job.status !== 'DELETED' && <AdminTools detail={data} reload={() => void reload()} />}
-        <Link to={`/reports?job=${job.id}`} className="block text-center text-sm font-semibold text-brand-700">📄 {t('dashboard.report')}</Link>
+        <Link to={`/reports?job=${job.id}`} className="flex items-center justify-center gap-2 py-2 text-sm font-semibold text-asphalt-700"><IconReport size={18} />{t('dashboard.report')}</Link>
       </div>
     </div>
   );

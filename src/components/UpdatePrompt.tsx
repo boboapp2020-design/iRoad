@@ -13,9 +13,9 @@ export function UpdatePrompt() {
   }, []);
   if (!update) return null;
   return (
-    <div className="fixed inset-x-4 bottom-24 z-50 flex items-center justify-between gap-3 rounded-xl bg-slate-900 px-4 py-3 text-sm text-white shadow-lg no-print">
+    <div className="fixed inset-x-4 bottom-24 z-50 flex items-center justify-between gap-3 rounded-xl bg-asphalt-900 px-4 py-3 text-sm text-white shadow-lg no-print">
       <span>{locale === 'th' ? 'มีแอปเวอร์ชันใหม่' : 'A new version is available'}</span>
-      <button className="font-semibold text-sky-300" onClick={() => void update(true)}>{locale === 'th' ? 'โหลดใหม่' : 'Reload'}</button>
+      <button className="font-semibold text-asphalt-800" onClick={() => void update(true)}>{locale === 'th' ? 'โหลดใหม่' : 'Reload'}</button>
     </div>
   );
 }

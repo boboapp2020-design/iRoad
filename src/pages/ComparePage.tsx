@@ -12,11 +12,11 @@ function Meta({ p }: { p: Photo }) {
   const { t, intlLocale } = useI18n();
   return (
     <dl className="space-y-1 text-xs">
-      <div><dt className="text-slate-500">{t('job.capturedAt')}</dt><dd className="font-medium">{fmtDateTime(p.captured_at, intlLocale)}</dd></div>
-      <div><dt className="text-slate-500">{t('job.coords')}</dt><dd className="font-medium">{fmtCoord(p.latitude, p.longitude)}</dd></div>
-      <div><dt className="text-slate-500">{t('job.accuracy')}</dt><dd className="font-medium">{t('common.meters', { v: fmtNum(p.gps_accuracy_m) })}</dd></div>
-      <div><dt className="text-slate-500">{t('job.heading')}</dt><dd className="font-medium">{p.heading_degrees == null ? '—' : `${fmtNum(p.heading_degrees, 0)}°`}</dd></div>
-      <div><dt className="text-slate-500">{t('job.inspector')}</dt><dd className="font-medium">{p.captured_by_name}</dd></div>
+      <div><dt className="text-asphalt-500">{t('job.capturedAt')}</dt><dd className="font-medium">{fmtDateTime(p.captured_at, intlLocale)}</dd></div>
+      <div><dt className="text-asphalt-500">{t('job.coords')}</dt><dd className="font-medium">{fmtCoord(p.latitude, p.longitude)}</dd></div>
+      <div><dt className="text-asphalt-500">{t('job.accuracy')}</dt><dd className="font-medium">{t('common.meters', { v: fmtNum(p.gps_accuracy_m) })}</dd></div>
+      <div><dt className="text-asphalt-500">{t('job.heading')}</dt><dd className="font-medium">{p.heading_degrees == null ? '—' : `${fmtNum(p.heading_degrees, 0)}°`}</dd></div>
+      <div><dt className="text-asphalt-500">{t('job.inspector')}</dt><dd className="font-medium">{p.captured_by_name}</dd></div>
     </dl>
   );
 }
@@ -48,7 +48,7 @@ export function ComparePage() {
       <PageHeader title={t('job.compare')} back={`/jobs/${id}`} />
       <div className="space-y-4 p-4">
         <div className="flex items-center justify-between">
-          <div><div className="text-xl font-bold">{data.job.job_code}</div><div className="text-sm text-slate-600">{data.job.road_name}</div></div>
+          <div><div className="text-xl font-bold">{data.job.job_code}</div><div className="text-sm text-asphalt-500">{data.job.road_name}</div></div>
           <StatusBadge status={data.job.status} />
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -60,20 +60,20 @@ export function ComparePage() {
             </div>
           ))}
         </div>
-        <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+        <div className="rounded-2xl bg-white p-4 ring-1 ring-asphalt-100">
           <div className="mb-2 flex items-center justify-between"><span className="font-bold">{t('job.history')}</span><VerificationBadge status={status} large /></div>
-          <p className="text-sm text-slate-600">{t(`verification.${status}_desc`)}</p>
+          <p className="text-sm text-asphalt-500">{t(`verification.${status}_desc`)}</p>
           {rows.map(([label, value, pass]) => (
-            <div key={label} className="flex items-center justify-between border-b border-slate-100 py-2 text-sm">
-              <span className="text-slate-600">{label}</span>
+            <div key={label} className="flex items-center justify-between border-b border-asphalt-100 py-2 text-sm">
+              <span className="text-asphalt-500">{label}</span>
               <span className="flex items-center gap-2 font-semibold">{value}{pass !== undefined && <CheckIcon state={pass === null ? null : pass ? 'ok' : 'bad'} />}</span>
             </div>
           ))}
           {v && v.failure_reasons.length > 0 && <ul className="mt-2 list-inside list-disc text-sm">{v.failure_reasons.map((r, i) => <li key={i}>{reasonText(t, r)}</li>)}</ul>}
-          {v && <div className="mt-2 text-xs text-slate-400">{t('verification.rules')}: {v.rules_version} · {t('verification.verifiedAt')}: {fmtDateTime(v.verified_at, intlLocale)}</div>}
+          {v && <div className="mt-2 text-xs text-asphalt-500">{t('verification.rules')}: {v.rules_version} · {t('verification.verifiedAt')}: {fmtDateTime(v.verified_at, intlLocale)}</div>}
           {v && !v.record_intact && <Alert kind="error">{t('verification.recordTampered')}</Alert>}
         </div>
-        <div className="rounded-2xl border-2 border-dashed border-slate-300 p-4 text-center text-sm text-slate-500">
+        <div className="rounded-2xl border-2 border-dashed border-asphalt-100 p-4 text-center text-sm text-asphalt-500">
           🧩 {t('verification.alignPlaceholder')}
         </div>
         <Alert kind="info">{t('verification.noAiNote')}</Alert>

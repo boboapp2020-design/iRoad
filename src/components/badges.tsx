@@ -3,15 +3,15 @@ import type { JobStatus } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 
 const jobColors: Record<JobStatus, string> = {
-  DRAFT: 'bg-slate-100 text-slate-700',
-  AWAITING_REPAIR: 'bg-orange-100 text-orange-800',
-  AWAITING_AFTER_PHOTO: 'bg-amber-100 text-amber-800',
-  PENDING_REVIEW: 'bg-sky-100 text-sky-800',
-  APPROVED: 'bg-emerald-100 text-emerald-800',
-  REJECTED: 'bg-red-100 text-red-800',
-  NEEDS_RECAPTURE: 'bg-rose-100 text-rose-800',
-  CANCELLED: 'bg-slate-200 text-slate-600',
-  DELETED: 'bg-slate-700 text-white',
+  DRAFT: 'bg-asphalt-100 text-asphalt-800',
+  AWAITING_REPAIR: 'bg-caution-50 text-caution-700 ring-1 ring-lane-500/50',
+  AWAITING_AFTER_PHOTO: 'bg-caution-50 text-caution-700 ring-1 ring-lane-500/50',
+  PENDING_REVIEW: 'bg-asphalt-800 text-white',
+  APPROVED: 'bg-go-50 text-go-700 ring-1 ring-go-600/30',
+  REJECTED: 'bg-stop-50 text-stop-700 ring-1 ring-stop-600/30',
+  NEEDS_RECAPTURE: 'bg-stop-50 text-stop-700 ring-1 ring-stop-600/30',
+  CANCELLED: 'bg-asphalt-100 text-asphalt-500',
+  DELETED: 'bg-asphalt-100 text-asphalt-500 line-through',
 };
 
 export function StatusBadge({ status }: { status: JobStatus }) {
@@ -20,10 +20,10 @@ export function StatusBadge({ status }: { status: JobStatus }) {
 }
 
 const vColors: Record<DisplayVerificationStatus, string> = {
-  PASS: 'bg-emerald-600 text-white',
-  FAIL: 'bg-red-600 text-white',
-  INSUFFICIENT_DATA: 'bg-amber-500 text-white',
-  PENDING: 'bg-slate-400 text-white',
+  PASS: 'bg-go-600 text-white',
+  FAIL: 'bg-stop-600 text-white',
+  INSUFFICIENT_DATA: 'bg-lane-500 text-asphalt-950',
+  PENDING: 'bg-asphalt-300 text-asphalt-950',
 };
 
 export function VerificationBadge({ status, large }: { status: DisplayVerificationStatus; large?: boolean }) {

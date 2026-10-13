@@ -1,17 +1,44 @@
 @import "tailwindcss";
 
+/*
+ * Road-site palette: asphalt surfaces, lane-marking yellow for the one primary
+ * action on each screen, survey-white paper, and signal colours that only ever
+ * mean pass / fail / caution.
+ */
 @theme {
-  --font-sans: "Sarabun", "Noto Sans Thai", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-600: #1d5fe0;
-  --color-brand-700: #1d4ed8;
-  --color-brand-800: #1e40af;
+  --font-sans: "IBM Plex Sans Thai", "Noto Sans Thai", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-asphalt-950: #16191c;
+  --color-asphalt-900: #1f2328;
+  --color-asphalt-800: #2b3036;
+  --color-asphalt-700: #3a4048;
+  --color-asphalt-500: #6b737d;
+  --color-asphalt-300: #b3b9c0;
+  --color-asphalt-100: #e7e9e6;
+  --color-paper: #f6f7f4;
+  --color-lane-300: #ffe08a;
+  --color-lane-400: #ffd24d;
+  --color-lane-500: #ffc72c;
+  --color-lane-600: #e6ac00;
+  --color-go-50: #e9f7ef;
+  --color-go-600: #1e9e5a;
+  --color-go-700: #17804a;
+  --color-stop-50: #fdeceb;
+  --color-stop-600: #d7362c;
+  --color-stop-700: #b42a22;
+  --color-caution-50: #fff6e0;
+  --color-caution-700: #8a5a00;
+  /* legacy aliases used across pages */
+  --color-brand-50: #fff6e0;
+  --color-brand-100: #ffe08a;
+  --color-brand-600: #2b3036;
+  --color-brand-700: #2b3036;
+  --color-brand-800: #1f2328;
 }
 
 html, body, #root { height: 100%; }
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-paper text-asphalt-900 antialiased;
+  font-feature-settings: "tnum" 1; /* aligned digits for coordinates and distances */
   font-size: 16px; /* readable outdoors; never below 16px to avoid iOS zoom on inputs */
   -webkit-tap-highlight-color: transparent;
 }
@@ -19,6 +46,20 @@ input, select, textarea, button { font: inherit; }
 .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 0.5rem); }
 .safe-top { padding-top: max(env(safe-area-inset-top), 0rem); }
 .leaflet-container { font: inherit; z-index: 0; }
+
+/* The lane line: dashed yellow centre marking used as the app's signature divider. */
+.lane-line {
+  height: 4px;
+  background: repeating-linear-gradient(90deg, var(--color-lane-500) 0 18px, transparent 18px 30px);
+}
+.lane-line-vertical {
+  width: 4px;
+  background: repeating-linear-gradient(180deg, var(--color-lane-500) 0 12px, transparent 12px 20px);
+}
+:focus-visible { outline: 3px solid var(--color-lane-500); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
 
 @media print {
   .no-print { display: none !important; }

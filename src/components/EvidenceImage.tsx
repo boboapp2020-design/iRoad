@@ -44,14 +44,14 @@ export function EvidenceImage({ photoId, variant = 'original', alt, className = 
     };
   }, [photoId, variant]);
 
-  if (!photoId) return <div className={`flex items-center justify-center bg-slate-100 text-slate-400 ${className}`}>—</div>;
-  if (state === 'loading') return <div className={`flex items-center justify-center bg-slate-100 ${className}`}><Spinner /></div>;
-  if (state === 'error' || state === null) return <div className={`flex items-center justify-center bg-slate-100 text-sm text-red-700 ${className}`}>⚠</div>;
+  if (!photoId) return <div className={`flex items-center justify-center bg-asphalt-100 text-asphalt-500 ${className}`}>—</div>;
+  if (state === 'loading') return <div className={`flex items-center justify-center bg-asphalt-100 ${className}`}><Spinner /></div>;
+  if (state === 'error' || state === null) return <div className={`flex items-center justify-center bg-asphalt-100 text-sm text-stop-700 ${className}`}>⚠</div>;
   return (
     <div className="relative">
       <img src={state.url} alt={alt} className={`object-cover ${className}`} />
       {state.integrityOk === false && (
-        <span className="absolute left-1 top-1 rounded bg-red-600 px-2 py-0.5 text-xs font-bold text-white">SHA-256 ✕</span>
+        <span className="absolute left-1 top-1 rounded bg-stop-600 px-2 py-0.5 text-xs font-bold text-white">SHA-256 ✕</span>
       )}
     </div>
   );

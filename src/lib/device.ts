@@ -18,3 +18,8 @@ export function deviceMetadata(extra: Record<string, unknown> = {}): Record<stri
 export function isIOS(): boolean {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 }
+
+/** In-app browsers (LINE, Facebook, Instagram, …) often lack a compass or camera access. */
+export function isInAppBrowser(ua = navigator.userAgent): boolean {
+  return /\bLine\/|FBAN|FBAV|Instagram|MicroMessenger|; wv\)|TikTok/i.test(ua);
+}
