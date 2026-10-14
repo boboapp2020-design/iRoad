@@ -29,9 +29,8 @@ jobs:
         env:
           VITE_BASE: /${{ github.event.repository.name }}/
           # The Apps Script web app URL is public (not a secret). A repository variable
-          # (Settings → Secrets and variables → Actions → Variables) overrides it; set the
-          # variable to "demo" to publish the in-browser DEMO mode instead.
-          VITE_APPS_SCRIPT_URL: ${{ vars.VITE_APPS_SCRIPT_URL == 'demo' && '' || vars.VITE_APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbwLGm8Ju1T9aDQNXdXxmGnLIprtE6Wa_JgL7oFz6LVkRrlZNC-NJlt8PkTF_zFbjJZyZQ/exec' }}
+          # (Settings → Secrets and variables → Actions → Variables) overrides it.
+          VITE_APPS_SCRIPT_URL: ${{ vars.VITE_APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbwLGm8Ju1T9aDQNXdXxmGnLIprtE6Wa_JgL7oFz6LVkRrlZNC-NJlt8PkTF_zFbjJZyZQ/exec' }}
         run: npm run build
       - name: SPA fallback for deep links
         run: cp dist/index.html dist/404.html
