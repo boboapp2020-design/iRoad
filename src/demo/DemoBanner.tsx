@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { isDemo } from '@/lib/env';
+import { env, isDemo } from '@/lib/env';
 import { useI18n } from '@/lib/i18n';
 
 const ACCOUNTS = [
@@ -15,6 +15,9 @@ export function DemoBanner() {
   return (
     <div className="bg-amber-tile px-3 py-1 text-center text-xs font-semibold text-amber-ink no-print">
       {locale === 'th' ? 'โหมดทดลอง — ข้อมูลเก็บในเครื่องนี้เท่านั้น ไม่ใช่หลักฐานจริง' : 'DEMO MODE — data stays on this device; not real evidence'}
+      {env.apiUrl && (
+        <a className="ml-2 underline" href={`${import.meta.env.BASE_URL}?demo=0`}>{locale === 'th' ? 'ไปใช้ระบบจริง' : 'Use the real system'}</a>
+      )}
     </div>
   );
 }

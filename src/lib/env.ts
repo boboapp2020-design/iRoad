@@ -10,8 +10,29 @@ export const env = {
   requestTimeoutMs: Number(import.meta.env.VITE_API_TIMEOUT_MS) || 60_000,
 };
 
-/** No backend configured → the in-browser demo backend is used (data stays on this device). */
-export const isDemo = !env.apiUrl;
+/**
+ * Demo mode: the in-browser demo backend (data stays on this device). Used when
+ * no backend is configured, or when opened with `?demo=1` (remembered on this
+ * device until `?demo=0`), so the published app can be tried without accounts.
+ */
+function demoRequested(): boolean {
+  try {
+    const q = new URLSearchParams(window.location.search).get('demo');
+    const prev = localStorage.getItem('rr.demo') === '1';
+    if (q === '1' || q === '0') {
+      const next = q === '1';
+      if (next !== prev) localStorage.removeItem('rr.session'); // never reuse a session across backends
+      if (next) localStorage.setItem('rr.demo', '1');
+      else localStorage.removeItem('rr.demo');
+      return next;
+    }
+    return prev;
+  } catch {
+    return false;
+  }
+}
+
+export const isDemo = !env.apiUrl || demoRequested();
 
 export function tileUrl(): string {
   return env.mapTileUrl.replace('{apiKey}', encodeURIComponent(env.mapApiKey));
