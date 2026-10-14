@@ -3,7 +3,7 @@ name: Diagnose Apps Script backend
 # Calls the Apps Script web app exactly like the browser app does (GET health
 # check, POST text/plain JSON with an Origin header) and prints status codes,
 # redirects, CORS headers and the start of each body. No secrets involved.
-# run 3
+# run 4 (POST then GET on 302, like browsers)
 on:
   push:
     paths: ['.github/workflows/diagnose-backend.yml']
@@ -23,7 +23,7 @@ jobs:
           echo '--- body (first 800 chars)'; head -c 800 body.txt; echo
       - name: POST like the app (text/plain JSON, Origin header)
         run: |
-          curl -sS -L -X POST -H "Origin: $ORIGIN" -H 'Content-Type: text/plain;charset=utf-8' \
+          curl -sS -L -H "Origin: $ORIGIN" -H 'Content-Type: text/plain;charset=utf-8' \
             --data '{"action":"login","payload":{"email":"diagnostic@example.com","password":"not-a-real-password"}}' \
             -o body2.txt -D headers2.txt -w 'final_status=%{http_code} final_url=%{url_effective} redirects=%{num_redirects}\n' "$URL" || true
           echo '--- headers'; cat headers2.txt | grep -iE '^(HTTP|location|content-type|access-control)' || true
