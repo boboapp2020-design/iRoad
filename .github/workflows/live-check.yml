@@ -1,0 +1,52 @@
+name: Live site check
+
+# After each Pages deploy, open the PUBLISHED app in a real browser (phone
+# viewport), switch to demo mode with ?demo=1 and sign in with the demo admin.
+# Prints the build stamp, what the page shows and any errors.
+on:
+  workflow_run:
+    workflows: ['Deploy PWA to GitHub Pages']
+    types: [completed]
+  push:
+    paths: ['.github/workflows/live-check.yml']
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Sign in to the live app in demo mode
+        run: |
+          sleep 20 # let the Pages CDN pick up the new build
+          cat > live.mjs <<'EOF'
+          import { chromium, devices } from '@playwright/test';
+          const base = 'https://boboapp2020-design.github.io/iRoad/';
+          const browser = await chromium.launch();
+          const page = await (await browser.newContext({ ...devices['Pixel 7'] })).newPage();
+          const logs = [];
+          page.on('pageerror', (e) => logs.push('pageerror: ' + e.message));
+          page.on('console', (m) => m.type() === 'error' && logs.push('console: ' + m.text()));
+          await page.goto(base + '?demo=1', { waitUntil: 'networkidle' });
+          console.log('build stamp:', (await page.getByText(/^build /).allTextContents()).join(' '));
+          console.log('demo banner shown:', await page.getByText('โหมดทดลอง').count() > 0);
+          await page.getByLabel('อีเมล').fill('admin@demo.local');
+          await page.getByLabel('รหัสผ่าน').fill('Demo123456');
+          await page.getByRole('button', { name: 'เข้าสู่ระบบ' }).click();
+          await page.waitForTimeout(8000);
+          const heading = await page.locator('h1').allTextContents();
+          console.log('url after sign-in:', page.url());
+          console.log('heading:', heading.join(' | '));
+          console.log('alerts:', (await page.locator('[role=alert]').allTextContents()).join(' | ') || '(none)');
+          console.log(logs.join('\n') || 'no page errors');
+          await browser.close();
+          if (!heading.some((h) => h.startsWith('สวัสดี'))) { console.log('RESULT: SIGN-IN FAILED'); process.exit(1); }
+          console.log('RESULT: SIGN-IN OK');
+          EOF
+          node live.mjs
