@@ -96,6 +96,14 @@ export function LoginPage() {
         <div className="text-center">
           <Link to="/forgot" className="text-[15px] font-semibold text-primary-600">{t('auth.forgot')}</Link>
         </div>
+        {env.apiUrl && !isDemo && (
+          <a
+            href={`${import.meta.env.BASE_URL}?demo=1`}
+            className="block rounded-xl bg-white px-4 py-3 text-center text-[15px] font-semibold text-asphalt-700 ring-1 ring-asphalt-100 hover:ring-asphalt-300"
+          >
+            {locale === 'th' ? 'ลองใช้ก่อน ไม่ต้องมีบัญชี (โหมดทดลอง)' : 'Try it first, no account (demo mode)'}
+          </a>
+        )}
       </form>
       <div className="mt-auto pt-10">
         <RoadArt />
