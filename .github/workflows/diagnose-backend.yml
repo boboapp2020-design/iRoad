@@ -3,6 +3,7 @@ name: Diagnose Apps Script backend
 # Calls the Apps Script web app exactly like the browser app does (GET health
 # check, POST text/plain JSON with an Origin header) and prints status codes,
 # redirects, CORS headers and the start of each body. No secrets involved.
+# run 2
 on:
   push:
     paths: ['.github/workflows/diagnose-backend.yml']
@@ -27,3 +28,5 @@ jobs:
             -o body2.txt -D headers2.txt -w 'final_status=%{http_code} final_url=%{url_effective} redirects=%{num_redirects}\n' "$URL" || true
           echo '--- headers'; cat headers2.txt | grep -iE '^(HTTP|location|content-type|access-control)' || true
           echo '--- body (first 800 chars)'; head -c 800 body2.txt; echo
+          echo '--- visible text of the page (error message)'
+          python3 -c "import re,html,sys; t=open('body2.txt',encoding='utf-8',errors='replace').read(); t=re.sub(r'(?s)<(script|style)[^>]*>.*?</\\1>',' ',t); t=re.sub(r'<[^>]+>',' ',t); print(re.sub(r'\\s+',' ',html.unescape(t))[:1500])"
