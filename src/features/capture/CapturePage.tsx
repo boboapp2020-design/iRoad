@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { bearingDeg, CURRENT_RULES, type VerificationReason } from '@verification';
+import { bearingDeg, computeMatchScore, CURRENT_RULES, type VerificationReason } from '@verification';
 import { IconArrowUp, IconBack, IconCamera, IconCheckCircle, IconCompass, IconHelp, IconNavigate, IconPin, IconRefresh, IconRotateLeft, IconRotateRight } from '@/components/icons';
 import { isInAppBrowser } from '@/lib/device';
 import { turnDelta } from '@/lib/workflow';
 import { VerificationBadge } from '@/components/badges';
 import { Compass } from '@/components/Compass';
 import { EvidenceImage, loadEvidenceUrl } from '@/components/EvidenceImage';
+import { ScoreCard } from '@/components/ScoreCard';
 import { signatureOf, signatureOfBlob, signatureOfUrl, similarityScore, type Signature } from './imageSimilarity';
 import { Alert, BottomBar, Button, CheckIcon, KeyValue, PageHeader, Spinner } from '@/components/ui';
 import { api, ApiError, type CaptureType, type SubmitCapturePayload, type Verification } from '@/lib/api';
@@ -14,6 +15,8 @@ import { deviceMetadata } from '@/lib/device';
 import { errorMessage, fmtBytes, fmtCoord, fmtDateTime, fmtNum, reasonText } from '@/lib/format';
 import { arrayBufferToBase64, sha256Hex, uuid } from '@/lib/hash';
 import { useI18n } from '@/lib/i18n';
+import { useAuth } from '@/lib/auth';
+import { stampPhoto } from './stamp';
 import { useAsync } from '@/lib/useAsync';
 import { DemoBanner } from '@/demo/DemoBanner';
 import { afterAccuracyLimit, beforeAccuracyLimit, evaluateGate, measurementFrom, toPayload, type GateCheck } from './captureGate';
@@ -45,7 +48,9 @@ export function CapturePage() {
   const { id = '', type = 'BEFORE' } = useParams();
   const captureType = (type === 'AFTER' ? 'AFTER' : 'BEFORE') as CaptureType;
   const { t, intlLocale } = useI18n();
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const [manualReason, setManualReason] = useState('');
   const detail = useAsync(() => api.getJob(id), [id]);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -118,7 +123,7 @@ export function CapturePage() {
     return () => clearInterval(id);
   }, [phase, beforeId]);
 
-  const gate = evaluateGate({ mode: captureType, fix: geo.fix, heading: heading.reading, headingStatus: heading.status, now, rules, before });
+  const gate = evaluateGate({ mode: captureType, fix: geo.fix, heading: heading.reading, headingStatus: heading.status, now, rules, before, imageSimilarity: liveScore });
 
   const startSensors = useCallback(async () => {
     if (heading.needsPermission) await heading.requestPermission(); // iOS: must be inside a user gesture
@@ -136,10 +141,20 @@ export function CapturePage() {
       if (!pre.ready) throw new Error('RECHECK');
       const snapshot = measurementFrom(geo.fixRef.current, heading.readingRef.current, t0);
       // 2) Capture from the live camera track.
-      const shot = await camera.capture();
+      const raw = await camera.capture();
       // 3) The measurement recorded is the one taken at the shutter press (above);
       //    small jitter afterwards must not discard a correct photo. The server re-verifies it.
       if (Date.now() - t0 > MAX_CAPTURE_DURATION_MS) throw new Error('SLOW_CAPTURE');
+      // 4) Burn who / when / where into the photo (bottom band) before hashing.
+      const when = new Intl.DateTimeFormat(intlLocale, { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(t0));
+      const lines = [
+        `${captureType === 'BEFORE' ? t('job.beforePhoto') : t('job.afterPhoto')} · ${job?.job_code ?? ''}`,
+        `${when} · ${t('capture.stampBy')} ${user?.full_name ?? '—'}`,
+        `${snapshot.latitude != null ? `${Number(snapshot.latitude).toFixed(6)}, ${Number(snapshot.longitude).toFixed(6)}` : '—'}` +
+          `${snapshot.accuracyM != null ? ` ±${fmtNum(snapshot.accuracyM)} ${t('common.m')}` : ''} · ${t('job.heading')} ${snapshot.headingDeg != null ? `${Math.round(snapshot.headingDeg)}°` : '—'}`,
+      ];
+      const stamped = await stampPhoto(raw.blob, lines).catch(() => ({ blob: raw.blob, width: raw.width, height: raw.height }));
+      const shot = { ...raw, ...stamped };
       const buf = await shot.blob.arrayBuffer();
       const hash = await sha256Hex(buf);
       const similarity = beforeSig.current ? similarityScore(beforeSig.current, await signatureOfBlob(shot.blob).catch(() => null)) : null;
@@ -151,7 +166,7 @@ export function CapturePage() {
         method: shot.method,
         width: shot.width,
         height: shot.height,
-        measurement: snapshot,
+        measurement: captureType === 'AFTER' ? { ...snapshot, imageSimilarity: similarity } : snapshot,
         fixTimeSource: geo.fixRef.current?.timeSource ?? 'unknown',
         positionSamples: geo.fixRef.current?.sampleCount ?? 0,
         distanceM: pre.distanceM,
@@ -170,7 +185,12 @@ export function CapturePage() {
     } finally {
       setCapturing(false);
     }
-  }, [capturing, captureType, geo.fixRef, heading.readingRef, heading.status, rules, before, camera, t]);
+  }, [capturing, captureType, geo.fixRef, heading.readingRef, heading.status, rules, before, camera, t, intlLocale, job?.job_code, user?.full_name]);
+
+  // Estimated score of the captured After photo (the server computes the real one).
+  const estimate = captureType === 'AFTER' && captured ? computeMatchScore({ distanceM: captured.distanceM, headingDiffDeg: captured.headingDiffDeg, imageSimilarity: captured.similarity }, rules) : null;
+  const attemptNo = (Number(job?.after_attempts) || 0) + 1;
+  const manualAllowed = !!(rules.scoring && estimate && estimate.total < rules.scoring.reviewScore && attemptNo >= rules.scoring.manualReviewAfterAttempts);
 
   const payloadRef = useRef<SubmitCapturePayload | null>(null);
   const save = useCallback(async () => {
@@ -193,14 +213,16 @@ export function CapturePage() {
           heading_platform_accuracy_deg: heading.readingRef.current?.platformAccuracyDeg ?? null,
           heading_samples: heading.reading?.sampleCount ?? null,
           image_similarity_score: captured.similarity,
-          image_similarity_method: captured.similarity === null ? null : 'gradient_correlation_48x36_v1',
+          image_similarity_method: captured.similarity === null ? null : 'sobel_top40_shift_zoom_64x48_v2',
+          stamped: true,
         }),
         measurement: toPayload(captured.measurement),
+        manual_review_reason: manualAllowed && manualReason.trim().length >= 5 ? manualReason.trim() : null,
       };
     }
     const s = await submitter.submit(payloadRef.current);
     if (s.kind === 'success') setPhase('done');
-  }, [captured, job, captureType, camera.info, heading.reading, submitter]);
+  }, [captured, job, captureType, camera.info, heading.reading, submitter, manualAllowed, manualReason]);
 
   const retake = () => {
     if (submission.kind === 'uploading') return;
@@ -316,11 +338,29 @@ export function CapturePage() {
             {captureType === 'AFTER' && <KeyValue label={t('verification.distance')} value={t('common.meters', { v: fmtNum(captured.distanceM) })} />}
             {captureType === 'AFTER' && <KeyValue label={t('verification.headingDiff')} value={`${fmtNum(captured.headingDiffDeg)}°`} />}
             {captureType === 'AFTER' && <KeyValue label={t('verification.similarity')} value={captured.similarity === null ? '—' : `${captured.similarity}%`} />}
+            {estimate && <KeyValue label={t('capture.scoreEstimate')} value={`${estimate.total}/100`} />}
             <KeyValue label={t('job.fileSize')} value={`${fmtBytes(captured.blob.size)} · ${captured.width}×${captured.height}`} />
             <KeyValue label={t('job.sha256')} value={captured.sha256} mono />
           </div>
           {captureType === 'BEFORE' && rules.maxGpsAccuracyM !== null && m.accuracyM != null && m.accuracyM > rules.maxGpsAccuracyM && <Alert kind="warning">{t('capture.referenceWeakNote')}</Alert>}
           {captureType === 'AFTER' && submission.kind !== 'success' && <Alert kind="info">{t('capture.pendingServer')}</Alert>}
+          {estimate && rules.scoring && estimate.total < rules.scoring.reviewScore && !manualAllowed && (
+            <Alert kind="warning">{t('capture.scoreLowRetake', { n: rules.scoring.manualReviewAfterAttempts - attemptNo })}</Alert>
+          )}
+          {manualAllowed && (
+            <div className="space-y-2 rounded-2xl bg-caution-50 p-4 ring-1 ring-caution-500/40">
+              <div className="font-semibold text-caution-700">{t('capture.manualTitle', { n: attemptNo })}</div>
+              <p className="text-[15px] text-asphalt-700">{t('capture.manualText')}</p>
+              <textarea
+                className="w-full rounded-xl border border-asphalt-100 bg-white px-4 py-3 text-base focus:border-primary-500 focus:outline-none"
+                rows={2}
+                maxLength={500}
+                placeholder={t('capture.manualPlaceholder')}
+                value={manualReason}
+                onChange={(e) => setManualReason(e.target.value)}
+              />
+            </div>
+          )}
           {submission.kind === 'uploading' && <Alert kind="info"><Spinner small /> {t('capture.uploading')} {t('capture.leaveWarning')}</Alert>}
           {submission.kind === 'unknown' && <Alert kind="warning">{t('capture.uploadUnknown')}</Alert>}
           {submission.kind === 'rejected' && (
@@ -356,8 +396,9 @@ export function CapturePage() {
   const walkRelative = walkBearing !== null && heading.reading ? turnDelta(heading.reading.headingDeg, walkBearing) : null;
   const distanceBad = gate.checks.find((c) => c.key === 'distance')?.state === 'bad';
   const headingBad = gate.checks.find((c) => c.key === 'heading')?.state === 'bad' && turn !== null && Math.abs(turn) > rules.maxHeadingDifferenceDeg;
+  const scoreLow = !!(gate.matchScore && rules.scoring && gate.matchScore.total < rules.scoring.passScore);
   const instruction = ready
-    ? t('capture.readyNow')
+    ? scoreLow ? t('capture.alignView', { v: gate.matchScore!.total }) : t('capture.readyNow')
     : distanceBad && gate.distanceM !== null
       ? t('capture.walkTo', { v: fmtNum(gate.distanceM) })
       : headingBad && turn !== null
@@ -389,7 +430,7 @@ export function CapturePage() {
         <h1 className="flex-1 text-center text-[17px] font-bold">{title}</h1>
         <button className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-white/10" onClick={() => setShowCalib((v) => !v)} aria-label={t('capture.tipsTitle')} aria-expanded={showCalib}><IconHelp /></button>
       </div>
-      <div className={`relative flex-1 overflow-hidden transition ${ready ? 'ring-4 ring-inset ring-go-600' : ''}`}>
+      <div className={`relative flex-1 overflow-hidden transition ${ready && !scoreLow ? 'ring-4 ring-inset ring-go-600' : ready ? 'ring-4 ring-inset ring-caution-500' : ''}`}>
         <video ref={videoRef} playsInline muted autoPlay className="h-full w-full object-cover" />
         {captureType === 'AFTER' && ghost && beforeUrl && (
           <img src={beforeUrl} alt="" aria-hidden className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-40" />
@@ -438,6 +479,13 @@ export function CapturePage() {
             {liveScore !== null && (
               <span className="rounded-full bg-black/60 px-3 py-1.5 text-[13px] font-semibold text-white">{t('capture.similarityLive', { v: liveScore })}</span>
             )}
+            {gate.matchScore && rules.scoring && (
+              <span
+                className={`rounded-full px-3 py-1.5 text-[13px] font-bold ${gate.matchScore.total >= rules.scoring.passScore ? 'bg-go-600 text-white' : gate.matchScore.total >= rules.scoring.reviewScore ? 'bg-caution-500 text-asphalt-950' : 'bg-stop-600 text-white'}`}
+              >
+                {t('capture.scoreLive', { v: gate.matchScore.total })}
+              </span>
+            )}
           </div>
         )}
         <div className="absolute bottom-3 left-3 rounded-xl bg-black/60 px-3 py-2 font-mono text-[12px] leading-relaxed text-white/90">
@@ -476,7 +524,7 @@ export function CapturePage() {
         )}
       </div>
       <div className="bg-black px-5 pb-4 pt-3 safe-bottom">
-        <p className={`mb-3 text-center text-[17px] font-bold leading-snug ${ready ? 'text-go-600' : 'text-white'}`} aria-live="polite">{instruction}</p>
+        <p className={`mb-3 text-center text-[17px] font-bold leading-snug ${ready && !scoreLow ? 'text-go-600' : ready ? 'text-caution-500' : 'text-white'}`} aria-live="polite">{instruction}</p>
         <div className="flex items-center justify-between">
           <div className="h-14 w-14 overflow-hidden rounded-xl bg-white/10">
             {captureType === 'AFTER' && before ? <EvidenceImage photoId={before.id} variant="thumb" alt={t('capture.original')} className="h-14 w-14" /> : null}
@@ -517,6 +565,7 @@ function AfterResult({ verification: v, beforeId, afterId, onBack }: { verificat
           <div><div className="mb-1 text-center text-sm font-semibold">{t('job.beforePhoto')}</div><EvidenceImage photoId={beforeId} alt="before" className="aspect-[3/4] w-full rounded-xl" /></div>
           <div><div className="mb-1 text-center text-sm font-semibold">{t('job.afterPhoto')}</div><EvidenceImage photoId={afterId} alt="after" className="aspect-[3/4] w-full rounded-xl" /></div>
         </div>
+        {v.score_details && <ScoreCard score={v.score_details} scoring={(v.thresholds as { scoring?: Parameters<typeof ScoreCard>[0]['scoring'] }).scoring} />}
         <div className="rounded-2xl bg-white px-4 py-1 ring-1 ring-asphalt-100">
           {row(t('verification.distance'), v.measured_distance_m == null ? '—' : t('common.meters', { v: fmtNum(v.measured_distance_m) }), v.distance_pass)}
           {row(t('verification.headingDiff'), v.heading_difference_degrees == null ? '—' : `${fmtNum(v.heading_difference_degrees)}°`, v.heading_pass)}

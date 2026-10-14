@@ -157,5 +157,9 @@ function withLock(fn) {
 function recordHash(table, obj) {
   var cols = SCHEMA[table].hashed;
   var parts = cols.map(function (c) { return c + '=' + normalizedCell(obj[c]); });
+  (SCHEMA[table].hashedIfSet || []).forEach(function (c) {
+    var v = normalizedCell(obj[c]);
+    if (v !== '') parts.push(c + '=' + v);
+  });
   return sha256Hex(table + '|' + parts.join('|'));
 }

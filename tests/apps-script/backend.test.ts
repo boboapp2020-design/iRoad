@@ -254,17 +254,20 @@ describe('After capture and verification', () => {
     const { job } = jobReadyForAfter(w);
     const r = w.b.call('submitCapture', afterPayload(job.id), w.inspector);
     expect(r.ok).toBe(true);
-    expect(r.data.verification).toMatchObject({ overall_status: 'PASS', gps_accuracy_pass: true, distance_pass: true, heading_pass: true, rules_version: 'rr-verify-v4' });
+    expect(r.data.verification).toMatchObject({ overall_status: 'PASS', gps_accuracy_pass: true, distance_pass: true, heading_pass: true, rules_version: 'rr-verify-v5' });
     expect(r.data.verification.measured_distance_m).toBeCloseTo(0.6, 3);
     expect(r.data.verification.heading_difference_degrees).toBe(3);
-    expect(r.data.verification.thresholds.max_distance_m).toBe(5);
+    expect(r.data.verification.thresholds.max_distance_m).toBe(30);
+    expect(r.data.verification.match_score).toBe(100);
+    expect(r.data.verification.score_details).toMatchObject({ image: 50, heading: 30, gps: 20, imageSimilarity: 90 });
+    expect(r.data.verification.record_intact).toBe(true);
     expect(r.data.verification.thresholds.max_gps_accuracy_m).toBeNull();
     expect(r.data.verification.thresholds.max_before_gps_accuracy_m).toBeNull();
     expect(r.data.job.status).toBe('PENDING_REVIEW');
   });
   it('FAIL keeps the evidence, moves to NEEDS_RECAPTURE and can never be approved', () => {
     const { job } = jobReadyForAfter(w);
-    const r = w.b.call('submitCapture', afterPayload(job.id, northOf(ORIGIN, 8)), w.inspector);
+    const r = w.b.call('submitCapture', afterPayload(job.id, northOf(ORIGIN, 40)), w.inspector);
     expect(r.data.verification.overall_status).toBe('FAIL');
     expect(r.data.verification.failure_reasons.map((x: { code: string }) => x.code)).toContain('DISTANCE_EXCEEDED');
     expect(r.data.job.status).toBe('NEEDS_RECAPTURE');
@@ -283,18 +286,55 @@ describe('After capture and verification', () => {
     const r = w.b.call('submitCapture', afterPayload(job.id), w.inspector);
     expect(r.data.verification.overall_status).toBe('PASS');
   });
-  it('distance limit is 5 m: 4.9 m passes, 5.3 m fails', () => {
+  it('distance hard limit is 30 m: 29 m with a matching view passes, 31 m fails', () => {
     const { job } = jobReadyForAfter(w);
-    const far = w.b.call('submitCapture', afterPayload(job.id, northOf(ORIGIN, 5.3)), w.inspector);
+    const far = w.b.call('submitCapture', afterPayload(job.id, northOf(ORIGIN, 31)), w.inspector);
     expect(far.data.verification.overall_status).toBe('FAIL');
     expect(far.data.verification.failure_reasons.map((x: { code: string }) => x.code)).toContain('DISTANCE_EXCEEDED');
-    const near = w.b.call('submitCapture', afterPayload(job.id, northOf(ORIGIN, 4.9)), w.inspector);
+    const near = w.b.call('submitCapture', afterPayload(job.id, northOf(ORIGIN, 29)), w.inspector);
     expect(near.data.verification.overall_status).toBe('PASS');
   });
   it('heading limit is ±10°: 10° passes, 11° fails (either side)', () => {
     const { job } = jobReadyForAfter(w); // Before heading 125°
     expect(w.b.call('submitCapture', afterPayload(job.id, { heading_deg: 114 }), w.inspector).data.verification.overall_status).toBe('FAIL');
     expect(w.b.call('submitCapture', afterPayload(job.id, { heading_deg: 135 }), w.inspector).data.verification.overall_status).toBe('PASS');
+  });
+  it('v5 score: a different view (low similarity) must be retaken even when GPS and heading match', () => {
+    const { job } = jobReadyForAfter(w);
+    const r = w.b.call('submitCapture', afterPayload(job.id, { image_similarity: 10 }), w.inspector);
+    expect(r.data.verification.overall_status).toBe('FAIL');
+    expect(r.data.verification.match_score).toBe(50);
+    expect(r.data.verification.failure_reasons.map((x: { code: string }) => x.code)).toContain('MATCH_SCORE_LOW');
+    expect(r.data.job.status).toBe('NEEDS_RECAPTURE');
+  });
+  it('v5 score: borderline passes with a reviewer flag; missing similarity counts as zero', () => {
+    const { job } = jobReadyForAfter(w);
+    const mid = w.b.call('submitCapture', afterPayload(job.id, { image_similarity: 45 }), w.inspector).data.verification;
+    expect(mid.match_score).toBeGreaterThanOrEqual(55);
+    expect(mid.match_score).toBeLessThan(70);
+    expect(mid.overall_status).toBe('PASS');
+    expect(mid.failure_reasons.map((x: { code: string }) => x.code)).toContain('MATCH_SCORE_BORDERLINE');
+  });
+  it('v5 manual review: only from the 3rd attempt, with a reason; GPS/heading hard limits still apply', () => {
+    const { job } = jobReadyForAfter(w);
+    const low = (extra: Record<string, unknown> = {}) => ({ ...afterPayload(job.id, { image_similarity: 5 }), manual_review_reason: 'ต้นไม้ข้างทางถูกตัดออกหมด', ...extra });
+    expect(w.b.call('submitCapture', low(), w.inspector).data.verification.overall_status).toBe('FAIL'); // attempt 1: reason ignored
+    expect(w.b.call('submitCapture', low(), w.inspector).data.verification.overall_status).toBe('FAIL'); // attempt 2
+    const third = w.b.call('submitCapture', low(), w.inspector).data;
+    expect(third.verification.overall_status).toBe('PASS');
+    expect(third.verification.failure_reasons.map((x: { code: string }) => x.code)).toContain('MANUAL_REVIEW_REQUESTED');
+    expect(third.job.status).toBe('PENDING_REVIEW');
+  });
+  it('v5 manual review never overrides a hard limit', () => {
+    const { job } = jobReadyForAfter(w);
+    for (let i = 0; i < 3; i++) w.b.call('submitCapture', afterPayload(job.id, { image_similarity: 5 }), w.inspector);
+    const r = w.b.call('submitCapture', { ...afterPayload(job.id, { heading_deg: 140 }), manual_review_reason: 'ขอให้ตรวจด้วยตา' }, w.inspector);
+    expect(r.data.verification.overall_status).toBe('FAIL');
+    expect(r.data.verification.failure_reasons.map((x: { code: string }) => x.code)).toContain('HEADING_DIFFERENCE_EXCEEDED');
+  });
+  it('v5 rejects an out-of-range similarity value', () => {
+    const { job } = jobReadyForAfter(w);
+    expect(w.b.call('submitCapture', afterPayload(job.id, { image_similarity: 150 }), w.inspector).error?.code).toBe('VALIDATION_ERROR');
   });
   it('missing After heading gives INSUFFICIENT_DATA (not PASS)', () => {
     const { job } = jobReadyForAfter(w);
@@ -428,7 +468,7 @@ describe('evidence access, corrections and audit', () => {
   });
   it('does not allow editing thresholds at runtime', () => {
     expect(w.b.call('updateSetting', { key: 'max_distance_m', value: '10' }, w.admin).error?.code).toBe('VALIDATION_ERROR');
-    expect(w.b.call('getSettings', {}, w.inspector).data.rules.maxDistanceM).toBe(5);
+    expect(w.b.call('getSettings', {}, w.inspector).data.rules.maxDistanceM).toBe(30);
   });
   it('returns a generic error for unknown actions and malformed bodies', () => {
     expect(w.b.call('dropTables', {}, w.admin).error?.code).toBe('UNKNOWN_ACTION');

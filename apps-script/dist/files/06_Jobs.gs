@@ -125,6 +125,7 @@ function publicVerification(v, names) {
     gps_accuracy_pass: cellBool(v.gps_accuracy_pass), distance_pass: cellBool(v.distance_pass), heading_pass: cellBool(v.heading_pass),
     overall_status: v.overall_status, failure_reasons: parseJsonSafe(v.failure_reasons, []), rules_version: v.rules_version,
     thresholds: parseJsonSafe(v.thresholds, {}), verified_at: v.verified_at, verified_by: v.verified_by || null,
+    match_score: cellNumber(v.match_score), score_details: parseJsonSafe(v.score_details, null),
     record_intact: v.record_hash === recordHash('verification_results', v)
   };
 }

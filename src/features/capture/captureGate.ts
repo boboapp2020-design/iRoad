@@ -1,10 +1,12 @@
 import {
   circularHeadingDifference,
+  computeMatchScore,
   evaluateCapture,
   haversineDistanceM,
   isCaptureAcceptable,
   verifyCapturePair,
   type CaptureMeasurement,
+  type MatchScoreBreakdown,
   type VerificationRules,
 } from '@verification';
 import type { CaptureMeasurementPayload, Photo } from '@/lib/api';
@@ -26,6 +28,8 @@ export interface GateResult {
   measurement: CaptureMeasurement;
   distanceM: number | null;
   headingDiffDeg: number | null;
+  /** After + scoring rules: live estimate of the match score. */
+  matchScore: MatchScoreBreakdown | null;
 }
 
 export interface GateInput {
@@ -36,6 +40,8 @@ export interface GateInput {
   now: number;
   rules: VerificationRules;
   before?: Pick<Photo, 'latitude' | 'longitude' | 'gps_accuracy_m' | 'heading_degrees' | 'heading_source' | 'heading_uncertainty_deg' | 'captured_at' | 'location_fix_at' | 'heading_measured_at'> | null;
+  /** Live view similarity to the Before photo (0–100), if measured. */
+  imageSimilarity?: number | null;
 }
 
 export function measurementFrom(fix: GeoFix | null, heading: HeadingReading | null, capturedAt: number): CaptureMeasurement {
@@ -78,6 +84,7 @@ export function toPayload(m: CaptureMeasurement): CaptureMeasurementPayload {
     captured_at: iso(m.capturedAt)!,
     location_fix_at: iso(m.locationFixAt),
     heading_measured_at: iso(m.headingMeasuredAt),
+    image_similarity: m.imageSimilarity ?? null,
   };
 }
 
@@ -146,10 +153,15 @@ export function evaluateGate(input: GateInput): GateResult {
   if (mode === 'BEFORE') {
     ready = isCaptureAcceptable(evaluateCapture(measurement, 'BEFORE', rules));
   } else {
-    ready = !!input.before && verifyCapturePair(photoMeasurement(input.before), measurement, rules).overallStatus === 'PASS';
+    // The shutter needs the hard limits (heading, distance, fresh data). With
+    // scoring rules the view match is judged on the photo itself, so readiness
+    // assumes a matching view; the live score below shows how close it is.
+    const asIfMatching = rules.scoring ? { ...measurement, imageSimilarity: 100 } : measurement;
+    ready = !!input.before && verifyCapturePair(photoMeasurement(input.before), asIfMatching, rules).overallStatus === 'PASS';
   }
   ready = ready && checks.every((c) => c.state === 'ok');
-  return { ready, checks, measurement, distanceM, headingDiffDeg };
+  const matchScore = mode === 'AFTER' ? computeMatchScore({ distanceM, headingDiffDeg, imageSimilarity: input.imageSimilarity ?? null }, rules) : null;
+  return { ready, checks, measurement, distanceM, headingDiffDeg, matchScore };
 }
 
 /**

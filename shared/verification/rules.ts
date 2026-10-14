@@ -33,6 +33,33 @@ export interface VerificationRules {
   readonly maxHeadingUncertaintyDeg: number;
   /** Tolerated clock jitter where a sample appears slightly after capture (ms). */
   readonly futureToleranceMs: number;
+  /**
+   * v5+: weighted match score for the After photo. When set, distance and
+   * heading above are hard limits, and passing also needs a high enough score
+   * built from image similarity, heading closeness and GPS distance.
+   */
+  readonly scoring?: MatchScoring | null;
+}
+
+export interface MatchScoring {
+  /** Points per component; they add up to 100. */
+  readonly weights: { readonly image: number; readonly heading: number; readonly gps: number };
+  /** Image similarity (0–100) at or above which the image points are full. */
+  readonly imageFull: number;
+  /** Image similarity at or below which the image points are zero. */
+  readonly imageZero: number;
+  /** Heading difference (degrees) at or below which the heading points are full. */
+  readonly headingFullDeg: number;
+  /** Share of heading points still given at the hard heading limit. */
+  readonly headingAtLimit: number;
+  /** Distance (m) at or below which the GPS points are full; zero at maxDistanceM. */
+  readonly gpsFullM: number;
+  /** Score at or above which the After photo passes. */
+  readonly passScore: number;
+  /** Score at or above which it passes but is flagged for the reviewer. */
+  readonly reviewScore: number;
+  /** After this many attempts the inspector may send a low score for human review, with a reason. */
+  readonly manualReviewAfterAttempts: number;
 }
 
 export const RULES_V1: VerificationRules = Object.freeze({
@@ -83,7 +110,33 @@ export const RULES_V4: VerificationRules = Object.freeze({
   maxDistanceM: 5,
 });
 
-export const CURRENT_RULES: VerificationRules = RULES_V4;
+/**
+ * v5 (project owner): GPS drifts too much to decide alone. The After photo
+ * passes on a weighted score: image similarity of the surroundings 50, heading
+ * closeness 30, GPS distance 20 (the owner's "GPS 20%"). Hard limits stay:
+ * heading ±10° and at most 30 m away. Score ≥ 70 passes, 55–69 passes with a
+ * reviewer flag, lower must be retaken; after 3 attempts the inspector may
+ * send it for human review with a reason. Starting values, to be tuned from
+ * field data under a new version.
+ */
+export const RULES_V5: VerificationRules = Object.freeze({
+  ...RULES_V4,
+  version: 'rr-verify-v5',
+  maxDistanceM: 30,
+  scoring: Object.freeze({
+    weights: Object.freeze({ image: 50, heading: 30, gps: 20 }),
+    imageFull: 70,
+    imageZero: 30,
+    headingFullDeg: 3,
+    headingAtLimit: 0.4,
+    gpsFullM: 5,
+    passScore: 70,
+    reviewScore: 55,
+    manualReviewAfterAttempts: 3,
+  }),
+});
+
+export const CURRENT_RULES: VerificationRules = RULES_V5;
 
 /** Server-side submission limits (not part of the pass/fail verification). */
 export const SUBMISSION_LIMITS = Object.freeze({
@@ -104,5 +157,6 @@ export function thresholdsSnapshot(rules: VerificationRules) {
     max_location_age_ms: rules.maxLocationAgeMs,
     max_heading_age_ms: rules.maxHeadingAgeMs,
     max_heading_uncertainty_deg: rules.maxHeadingUncertaintyDeg,
+    ...(rules.scoring ? { scoring: rules.scoring } : {}),
   };
 }

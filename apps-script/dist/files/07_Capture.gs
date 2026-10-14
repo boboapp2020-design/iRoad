@@ -26,8 +26,17 @@ function readMeasurement(m) {
     headingUncertaintyDeg: optNumber(m, 'heading_uncertainty_deg'),
     capturedAt: optTimestamp(m, 'captured_at'),
     locationFixAt: optTimestamp(m, 'location_fix_at'),
-    headingMeasuredAt: optTimestamp(m, 'heading_measured_at')
+    headingMeasuredAt: optTimestamp(m, 'heading_measured_at'),
+    imageSimilarity: readSimilarity(m)
   };
+}
+
+/** Optional 0–100 view similarity measured on the device (After photo, rules v5+). */
+function readSimilarity(m) {
+  var v = optNumber(m, 'image_similarity');
+  if (v === null) return null;
+  if (v < 0 || v > 100) fail('VALIDATION_ERROR', 'measurement.image_similarity must be 0–100');
+  return v;
 }
 
 function measurementFromPhoto(row) {
@@ -138,7 +147,11 @@ function actionSubmitCapture(p, ctx) {
         fail('CAPTURE_REJECTED', 'Before capture does not meet the requirements.', { reasons: evaluation.reasons, rules_version: rules.version });
       }
     } else {
-      outcome = RRVerify.verifyCapturePair(measurementFromPhoto(before), measurement, rules);
+      // A low score may be sent for human review only after enough attempts, with a reason.
+      var attemptNo = (Number(job.after_attempts) || 0) + 1;
+      var manualReason = typeof p.manual_review_reason === 'string' ? p.manual_review_reason.trim().slice(0, 500) : '';
+      var allowManual = rules.scoring && attemptNo >= rules.scoring.manualReviewAfterAttempts;
+      outcome = RRVerify.verifyCapturePair(measurementFromPhoto(before), measurement, rules, { manualReviewReason: allowManual ? manualReason : null });
     }
 
     // --- Persist: Drive file, then rows, then job status ----------------------
@@ -187,7 +200,9 @@ function actionSubmitCapture(p, ctx) {
           gps_accuracy_pass: outcome.gpsAccuracyPass, distance_pass: outcome.distancePass, heading_pass: outcome.headingPass,
           overall_status: outcome.overallStatus, failure_reasons: JSON.stringify(outcome.reasons),
           rules_version: outcome.rulesVersion, thresholds: JSON.stringify(outcome.thresholds), verified_at: nowIso(),
-          verified_by: '' // system-generated check
+          verified_by: '', // system-generated check
+          match_score: outcome.matchScore ? outcome.matchScore.total : '',
+          score_details: outcome.matchScore ? JSON.stringify(outcome.matchScore) : ''
         };
         v.record_hash = recordHash('verification_results', v);
         storedVerification = Db.insert('verification_results', [v])[0];

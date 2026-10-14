@@ -44,7 +44,7 @@ export const en: Dictionary = {
     recordTampered: 'Evidence record was modified outside the app',
   },
   reasons: {
-    EVIDENCE_MISSING: '{capture} evidence is missing', CAPTURE_TIME_MISSING: '{capture} capture time is missing',
+    MATCH_SCORE_LOW: 'Match score {value} is below {threshold}: the view does not match the original spot', MATCH_SCORE_BORDERLINE: 'Match score {value} is below {threshold}: the reviewer should compare the photos carefully', IMAGE_SIMILARITY_MISSING: 'View similarity was not measured (counts as 0)', MANUAL_REVIEW_REQUESTED: 'The inspector asked for a human decision: {value}', EVIDENCE_MISSING: '{capture} evidence is missing', CAPTURE_TIME_MISSING: '{capture} capture time is missing',
     COORDINATES_MISSING: '{capture} coordinates are missing', COORDINATES_INVALID: '{capture} coordinates are invalid',
     LOCATION_TIMESTAMP_MISSING: '{capture} GPS fix time is missing', LOCATION_STALE: '{capture} GPS fix is stale',
     ACCURACY_MISSING: '{capture} GPS accuracy is missing', ACCURACY_INVALID: '{capture} GPS accuracy is invalid',
@@ -87,7 +87,7 @@ export const en: Dictionary = {
     deleteJob: 'Delete repair job', deleteReason: 'Reason for deleting (at least 5 characters) — recorded in the log', deletedBanner: 'Deleted by {by} on {at}', deletedReason: 'Reason: {r}', deletedKept: 'Photos and evidence records are kept for audit', deleted: 'Job deleted',
   },
   capture: {
-    ghostOn: 'Overlay: on', ghostOff: 'Overlay: off', similarityLive: 'View match {v}%', ghostTip: 'Line the live view up with the faded Before photo', openCamera: 'Open camera', introLead: 'The app needs these three things. Tap "Allow" when your phone asks.', beforeSavedNext: 'Next: finish the repair, then tap "Repair done" on the job.', inRange: 'Within limit', outOfRange: 'Not within limit yet', measuring: 'Measuring...', cardDistance: '{v} m from spot', cardDistanceWait: 'Finding distance', cardHeading: 'Facing {v}°', cardHeadingDiff: '{d}° off', resultTitle: 'Verification result', result_PASS: 'Sent to the reviewer', result_FAIL: 'Position or direction does not match; retake', result_INSUFFICIENT_DATA: 'Not enough data to confirm; retake', result_PENDING: 'Waiting for the server', beforeTitle: 'Before capture', afterTitle: 'After capture', requestPermissions: 'Allow camera, location and compass',
+    stampBy: 'by', scoreEstimate: 'Match score (estimate)', scoreLive: 'Score {v}/100', alignView: 'You can shoot, but the view does not match yet (score {v}) — line it up with the overlay', scoreLowRetake: 'Low score: this will probably need a retake ({n} more attempts before it can go to human review)', manualTitle: 'Attempt {n} and the view still does not match', manualText: 'Give a reason to send it to the reviewer to judge by eye (e.g. a parked truck, trees cut down, a sign removed)', manualPlaceholder: 'Reason (at least 5 characters)', ghostOn: 'Overlay: on', ghostOff: 'Overlay: off', similarityLive: 'View match {v}%', ghostTip: 'Line the live view up with the faded Before photo', openCamera: 'Open camera', introLead: 'The app needs these three things. Tap "Allow" when your phone asks.', beforeSavedNext: 'Next: finish the repair, then tap "Repair done" on the job.', inRange: 'Within limit', outOfRange: 'Not within limit yet', measuring: 'Measuring...', cardDistance: '{v} m from spot', cardDistanceWait: 'Finding distance', cardHeading: 'Facing {v}°', cardHeadingDiff: '{d}° off', resultTitle: 'Verification result', result_PASS: 'Sent to the reviewer', result_FAIL: 'Position or direction does not match; retake', result_INSUFFICIENT_DATA: 'Not enough data to confirm; retake', result_PENDING: 'Waiting for the server', beforeTitle: 'Before capture', afterTitle: 'After capture', requestPermissions: 'Allow camera, location and compass',
     permissionsIntro: 'The app needs the rear camera, high-accuracy GPS and the orientation sensor to record verifiable evidence.',
     criteria: 'Requirements before capture', critAccuracy: 'GPS accuracy ≤ {v} m', critDistance: 'Distance from original ≤ {v} m',
     critHeading: 'Heading difference ≤ {v}°', critFresh: 'Location fresher than {v} s',
@@ -120,6 +120,7 @@ export const en: Dictionary = {
     headingNote: 'Heading is computed from the device back axis (where the rear camera faces); it is an approximation.',
     wait: 'Cannot capture yet — ', tooOld: 'This capture is too old. Please capture again.', pendingServer: 'Pending server verification',
   },
+  score: { title: 'Match with the original spot', image: 'View', heading: 'Heading', gps: 'GPS', legend: 'Pass ≥ {pass} · reviewer check {review}–{pass} · below {review} retake', similarity: 'View similarity from the phone {v}%', recomputing: 'Recomputing from the stored photos…', recomputed: 'Recomputed from the stored photos {v}%', mismatch: '(differs from the phone value; please check)' },
   navigate: {
     title: 'Navigate to original location', distance: '{v} to the original location', openMaps: 'Open in Google Maps', unknownDistance: 'Current location unknown',
     note: 'Opening a navigation app does not mean you have reached the location. Your position is checked again at capture.',

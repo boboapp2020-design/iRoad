@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CURRENT_RULES, deriveStatus, EARTH_RADIUS_M, evaluateCapture, isCaptureAcceptable, RULES_V1, RULES_V2, RULES_V3, RULES_V4, verifyCapturePair } from '@verification';
+import { computeMatchScore, CURRENT_RULES, deriveStatus, EARTH_RADIUS_M, evaluateCapture, isCaptureAcceptable, RULES_V1, RULES_V2, RULES_V3, RULES_V4, RULES_V5, verifyCapturePair } from '@verification';
 import { baseAfter, baseBefore } from './fixtures';
 
 describe('verifyCapturePair status rules', () => {
@@ -93,10 +93,46 @@ describe('rules v2: Before can be taken anywhere', () => {
   });
 });
 
-describe('rules v4 (current): 5 m and ±10°', () => {
+describe('rules v5 (current): weighted score, heading ±10° and 30 m hard limits', () => {
   const north = (m: number) => ({ latitude: baseBefore().latitude + (m / EARTH_RADIUS_M) * (180 / Math.PI), longitude: baseBefore().longitude });
-  it('is the current rules version', () => {
-    expect(CURRENT_RULES).toBe(RULES_V4);
+  it('is the current rules version with weights 50/30/20', () => {
+    expect(CURRENT_RULES).toBe(RULES_V5);
+    expect(RULES_V5).toMatchObject({ version: 'rr-verify-v5', maxDistanceM: 30, maxHeadingDifferenceDeg: 10 });
+    const w = RULES_V5.scoring!.weights;
+    expect(w.image + w.heading + w.gps).toBe(100);
+    expect(w.gps).toBe(20);
+  });
+  it('score parts: full at close range, falling with distance and heading', () => {
+    expect(computeMatchScore({ distanceM: 3, headingDiffDeg: 2, imageSimilarity: 90 }, RULES_V5)!.total).toBe(100);
+    const far = computeMatchScore({ distanceM: 17.5, headingDiffDeg: 10, imageSimilarity: 50 }, RULES_V5)!;
+    expect(far.gps).toBe(10);
+    expect(far.heading).toBe(12);
+    expect(far.image).toBe(25);
+    expect(computeMatchScore({ distanceM: 3, headingDiffDeg: 2, imageSimilarity: null }, RULES_V5)!.image).toBe(0);
+    expect(computeMatchScore({ distanceM: 3, headingDiffDeg: 2, imageSimilarity: 90 }, RULES_V4)).toBeNull();
+  });
+  it('GPS drift alone no longer fails a matching view', () => {
+    const r = verifyCapturePair(baseBefore(), { ...baseAfter(), ...north(12), imageSimilarity: 85 }, RULES_V5);
+    expect(r.overallStatus).toBe('PASS');
+    expect(r.matchScore!.total).toBeGreaterThanOrEqual(70);
+  });
+  it('a different view fails even right on the spot; heading and 30 m stay hard limits', () => {
+    expect(verifyCapturePair(baseBefore(), { ...baseAfter(), ...north(1), imageSimilarity: 10 }, RULES_V5).overallStatus).toBe('FAIL');
+    expect(verifyCapturePair(baseBefore(), { ...baseAfter(), ...north(31), imageSimilarity: 99 }, RULES_V5).overallStatus).toBe('FAIL');
+    expect(verifyCapturePair({ ...baseBefore(), headingDeg: 125 }, { ...baseAfter(), ...north(1), headingDeg: 137, imageSimilarity: 99 }, RULES_V5).overallStatus).toBe('FAIL');
+  });
+  it('manual review reason turns a low score into a flagged PASS, never a hard-limit failure', () => {
+    const low = verifyCapturePair(baseBefore(), { ...baseAfter(), ...north(1), imageSimilarity: 10 }, RULES_V5, { manualReviewReason: 'มีรถบรรทุกจอดบังทั้งหมด' });
+    expect(low.overallStatus).toBe('PASS');
+    expect(low.reasons.map((r) => r.code)).toContain('MANUAL_REVIEW_REQUESTED');
+    const hard = verifyCapturePair(baseBefore(), { ...baseAfter(), ...north(40), imageSimilarity: 10 }, RULES_V5, { manualReviewReason: 'มีรถบรรทุกจอดบังทั้งหมด' });
+    expect(hard.overallStatus).toBe('FAIL');
+  });
+});
+
+describe('rules v4: 5 m and ±10°', () => {
+  const north = (m: number) => ({ latitude: baseBefore().latitude + (m / EARTH_RADIUS_M) * (180 / Math.PI), longitude: baseBefore().longitude });
+  it('defines 5 m', () => {
     expect(RULES_V4).toMatchObject({ version: 'rr-verify-v4', maxGpsAccuracyM: null, maxBeforeGpsAccuracyM: null, maxDistanceM: 5, maxHeadingDifferenceDeg: 10 });
   });
   it('passes within 5 m and fails beyond 5 m', () => {

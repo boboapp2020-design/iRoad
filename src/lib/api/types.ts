@@ -1,4 +1,4 @@
-import type { VerificationReason, VerificationStatus } from '@verification';
+import type { MatchScoreBreakdown, VerificationReason, VerificationStatus } from '@verification';
 
 export type Role = 'admin' | 'inspector' | 'reviewer';
 export type JobStatus =
@@ -106,6 +106,9 @@ export interface Verification {
   verified_at: string;
   verified_by: string | null;
   record_intact: boolean;
+  /** Rules v5+: weighted match score (0–100) and its parts. */
+  match_score?: number | null;
+  score_details?: MatchScoreBreakdown | null;
 }
 
 export interface Review {
@@ -164,6 +167,7 @@ export interface CaptureMeasurementPayload {
   captured_at: string;
   location_fix_at: string | null;
   heading_measured_at: string | null;
+  image_similarity?: number | null;
 }
 
 export interface SubmitCapturePayload {
@@ -176,6 +180,8 @@ export interface SubmitCapturePayload {
   capture_method: 'image_capture_api' | 'video_frame_canvas';
   device_metadata: Record<string, unknown>;
   measurement: CaptureMeasurementPayload;
+  /** Rules v5+: reason to send a low match score for human review (accepted after enough attempts). */
+  manual_review_reason?: string | null;
 }
 
 export interface SubmitCaptureResult {

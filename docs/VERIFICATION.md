@@ -1,6 +1,32 @@
-# Verification rules (current: `rr-verify-v4`)
+# Verification rules (current: `rr-verify-v5`)
 
-> **v4 (current), decided by the project owner:** same as v3, but the After photo must be **≤ 5 m** from the Before
+> **v5 (current), decided by the project owner:** GPS drifts too much on phones to decide alone, so the After photo
+> passes on a **weighted match score (0–100)**:
+>
+> | Part | Points | Full when | Zero when |
+> |---|---|---|---|
+> | View similarity (top 40% of the frame) | 50 | similarity ≥ 70 | ≤ 30 |
+> | Heading closeness | 30 | ≤ 3° | 40% of the points remain at the 10° limit |
+> | GPS distance | 20 | ≤ 5 m | 30 m |
+>
+> **Hard limits** (fail regardless of score): heading ±10°, distance ≤ 30 m, fresh readings, camera capture, After
+> later than Before. **Score ≥ 70 → PASS; 55–69 → PASS with `MATCH_SCORE_BORDERLINE` (reviewer must look); < 55 →
+> FAIL `MATCH_SCORE_LOW`.** From the 3rd attempt the inspector may attach a reason; a low score then becomes PASS with
+> `MANUAL_REVIEW_REQUESTED` so the reviewer decides by eye (hard limits still apply).
+>
+> **View similarity** (`src/features/capture/imageSimilarity.ts`): both photos are reduced to a 64×48 grid of
+> Sobel edge strength; only the top 40% of the frame is compared (the repaired surface, passing cars and the
+> date/name stamp sit lower), small shifts (±6%) and a small zoom (8%) are searched, and the best normalised
+> correlation is the score. It is measured on the device, stored in the photo metadata and the verification, and
+> **recomputed from the stored photos when the reviewer opens the comparison**; a difference over 10 points is flagged.
+>
+> **Calibration** (`e2e/similarity.spec.ts`, road photos from the client mockup, real browser): the same spot re-shot
+> with shifts, zoom, 3° tilt, another day's light, glare, tree shadows, cars, pedestrians and blur scored 74–100; the
+> same road before vs after repair 81–83; other roads 0–31. The thresholds are starting values to be re-tuned with
+> field data under a new rules version. Every photo also carries a burned-in stamp (job, date/time, inspector,
+> coordinates, heading) in the bottom band.
+
+> **v4, decided by the project owner:** same as v3, but the After photo must be **≤ 5 m** from the Before
 > position (was 1 m). Field tests showed that a phone standing on the same spot drifts 3–5 m, so 1 m failed correct
 > photos. Heading stays **±10°**. To get the exact framing the camera shows the Before photo as a semi-transparent
 > overlay, and the app stores an image-similarity score (0–100) in the After photo's device metadata. The score is a

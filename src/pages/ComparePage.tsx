@@ -1,4 +1,8 @@
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { ScoreCard } from '@/components/ScoreCard';
+import { loadEvidenceUrl } from '@/components/EvidenceImage';
+import { signatureOfUrl, similarityScore } from '@/features/capture/imageSimilarity';
 import { StatusBadge, VerificationBadge } from '@/components/badges';
 import { EvidenceImage } from '@/components/EvidenceImage';
 import { Alert, CheckIcon, PageHeader, Spinner } from '@/components/ui';
@@ -25,6 +29,19 @@ export function ComparePage() {
   const { id = '' } = useParams();
   const { t, intlLocale } = useI18n();
   const { data, error, loading } = useAsync(() => api.getJob(id), [id]);
+  // Reviewer-side check: recompute the view similarity from the two stored photos.
+  const [recomputed, setRecomputed] = useState<number | null>(null);
+  const vNow = data?.verifications.find((x) => x.id === data.job.current_verification_id) ?? null;
+  const pair = vNow?.score_details ? [vNow.before_photo_id, vNow.after_photo_id] as const : null;
+  useEffect(() => {
+    if (!pair) return;
+    let alive = true;
+    Promise.all(pair.map((pid) => loadEvidenceUrl(pid).then(signatureOfUrl)))
+      .then(([a, b]) => alive && setRecomputed(similarityScore(a, b)))
+      .catch(() => undefined);
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pair?.[0], pair?.[1]]);
   if (loading && !data) return <><PageHeader title={t('job.compare')} back={`/jobs/${id}`} /><div className="flex justify-center p-8"><Spinner /></div></>;
   if (error || !data) return <><PageHeader title={t('job.compare')} back={`/jobs/${id}`} /><div className="p-4"><Alert kind="error">{errorMessage(t, error)}</Alert></div></>;
 
@@ -63,6 +80,7 @@ export function ComparePage() {
             </div>
           ))}
         </div>
+        {v?.score_details && <ScoreCard score={v.score_details} scoring={(v.thresholds as { scoring?: Parameters<typeof ScoreCard>[0]['scoring'] }).scoring} recomputed={recomputed} />}
         <div className="rounded-2xl bg-white p-4 ring-1 ring-asphalt-100">
           <div className="mb-2 flex items-center justify-between"><span className="font-bold">{t('job.history')}</span><VerificationBadge status={status} large /></div>
           <p className="text-sm text-asphalt-500">{t(`verification.${status}_desc`)}</p>

@@ -30,11 +30,13 @@ var RRVerify = (() => {
     RULES_V2: () => RULES_V2,
     RULES_V3: () => RULES_V3,
     RULES_V4: () => RULES_V4,
+    RULES_V5: () => RULES_V5,
     SUBMISSION_LIMITS: () => SUBMISSION_LIMITS,
     bearingDeg: () => bearingDeg,
     cameraHeadingFromOrientation: () => cameraHeadingFromOrientation,
     circularHeadingDifference: () => circularHeadingDifference,
     circularStats: () => circularStats,
+    computeMatchScore: () => computeMatchScore,
     deriveStatus: () => deriveStatus,
     evaluateCapture: () => evaluateCapture,
     haversineDistanceM: () => haversineDistanceM,
@@ -80,7 +82,23 @@ var RRVerify = (() => {
     version: "rr-verify-v4",
     maxDistanceM: 5
   });
-  var CURRENT_RULES = RULES_V4;
+  var RULES_V5 = Object.freeze({
+    ...RULES_V4,
+    version: "rr-verify-v5",
+    maxDistanceM: 30,
+    scoring: Object.freeze({
+      weights: Object.freeze({ image: 50, heading: 30, gps: 20 }),
+      imageFull: 70,
+      imageZero: 30,
+      headingFullDeg: 3,
+      headingAtLimit: 0.4,
+      gpsFullM: 5,
+      passScore: 70,
+      reviewScore: 55,
+      manualReviewAfterAttempts: 3
+    })
+  });
+  var CURRENT_RULES = RULES_V5;
   var SUBMISSION_LIMITS = Object.freeze({
     /** Captures older than this when they reach the server are rejected (ms). */
     maxSubmissionDelayMs: 15 * 6e4,
@@ -97,7 +115,8 @@ var RRVerify = (() => {
       max_heading_difference_deg: rules.maxHeadingDifferenceDeg,
       max_location_age_ms: rules.maxLocationAgeMs,
       max_heading_age_ms: rules.maxHeadingAgeMs,
-      max_heading_uncertainty_deg: rules.maxHeadingUncertaintyDeg
+      max_heading_uncertainty_deg: rules.maxHeadingUncertaintyDeg,
+      ...rules.scoring ? { scoring: rules.scoring } : {}
     };
   }
 
@@ -192,6 +211,22 @@ var RRVerify = (() => {
   }
 
   // shared/verification/verify.ts
+  var clamp01 = (x) => Math.max(0, Math.min(1, x));
+  var round1 = (x) => Math.round(x * 10) / 10;
+  function computeMatchScore(input, rules) {
+    const s = rules.scoring;
+    if (!s || input.distanceM === null || input.headingDiffDeg === null) return null;
+    const sim = isFiniteNumber(input.imageSimilarity) ? Math.max(0, Math.min(100, input.imageSimilarity)) : null;
+    const imageShare = sim === null ? 0 : clamp01((sim - s.imageZero) / (s.imageFull - s.imageZero));
+    const headSpan = Math.max(rules.maxHeadingDifferenceDeg - s.headingFullDeg, 1e-9);
+    const headingShare = input.headingDiffDeg <= s.headingFullDeg ? 1 : clamp01(1 - (1 - s.headingAtLimit) * ((input.headingDiffDeg - s.headingFullDeg) / headSpan));
+    const gpsSpan = Math.max(rules.maxDistanceM - s.gpsFullM, 1e-9);
+    const gpsShare = input.distanceM <= s.gpsFullM ? 1 : clamp01(1 - (input.distanceM - s.gpsFullM) / gpsSpan);
+    const image = round1(imageShare * s.weights.image);
+    const heading = round1(headingShare * s.weights.heading);
+    const gps = round1(gpsShare * s.weights.gps);
+    return { total: Math.round(image + heading + gps), image, heading, gps, imageSimilarity: sim };
+  }
   function parseTimestampMs(value) {
     if (isFiniteNumber(value)) return value;
     if (typeof value === "string" && value.trim() !== "") {
@@ -340,7 +375,8 @@ var RRVerify = (() => {
     }
     return "PASS";
   }
-  function verifyCapturePair(before, after, rules) {
+  function verifyCapturePair(before, after, rules, options = {}) {
+    var _a;
     const b = evaluateCapture(before, "BEFORE", rules);
     const a = evaluateCapture(after, "AFTER", rules);
     const reasons = [...b.reasons, ...a.reasons];
@@ -392,8 +428,30 @@ var RRVerify = (() => {
       }
     }
     const checks = { gpsAccuracyPass, distancePass, headingPass };
+    let overallStatus = deriveStatus(checks, reasons);
+    let matchScore = null;
+    const s = rules.scoring;
+    if (s) {
+      matchScore = computeMatchScore({ distanceM: measuredDistanceM, headingDiffDeg: headingDifferenceDeg, imageSimilarity: after == null ? void 0 : after.imageSimilarity }, rules);
+      if (!isFiniteNumber(after == null ? void 0 : after.imageSimilarity)) {
+        reasons.push(reason("IMAGE_SIMILARITY_MISSING", "WARNING", "Image similarity was not measured; image points are zero."));
+      }
+      if (overallStatus === "PASS" && matchScore) {
+        if (matchScore.total < s.reviewScore) {
+          const manual = ((_a = options.manualReviewReason) != null ? _a : "").trim();
+          if (manual.length >= 5) {
+            reasons.push(reason("MANUAL_REVIEW_REQUESTED", "WARNING", `Score ${matchScore.total} is below ${s.reviewScore}; sent for human review: ${manual}`, { value: manual, threshold: s.reviewScore }));
+          } else {
+            overallStatus = "FAIL";
+            reasons.push(reason("MATCH_SCORE_LOW", "FAIL", `Match score ${matchScore.total} is below ${s.reviewScore}.`, { value: matchScore.total, threshold: s.reviewScore }));
+          }
+        } else if (matchScore.total < s.passScore) {
+          reasons.push(reason("MATCH_SCORE_BORDERLINE", "WARNING", `Match score ${matchScore.total} is below ${s.passScore}; check the photos carefully.`, { value: matchScore.total, threshold: s.passScore }));
+        }
+      }
+    }
     return {
-      overallStatus: deriveStatus(checks, reasons),
+      overallStatus,
       ...checks,
       measuredDistanceM,
       headingDifferenceDeg,
@@ -401,7 +459,8 @@ var RRVerify = (() => {
       afterAccuracyM: isValidAccuracy(after == null ? void 0 : after.accuracyM) ? after.accuracyM : null,
       reasons,
       rulesVersion: rules.version,
-      thresholds: thresholdsSnapshot(rules)
+      thresholds: thresholdsSnapshot(rules),
+      matchScore
     };
   }
   function isCaptureAcceptable(e) {
@@ -513,10 +572,12 @@ var SCHEMA = {
     columns: ['id', 'repair_job_id', 'before_photo_id', 'after_photo_id', 'attempt_number', 'measured_distance_m',
       'before_accuracy_m', 'after_accuracy_m', 'heading_difference_degrees', 'gps_accuracy_pass', 'distance_pass',
       'heading_pass', 'overall_status', 'failure_reasons', 'rules_version', 'thresholds', 'verified_at', 'verified_by',
-      'record_hash'],
+      'record_hash', 'match_score', 'score_details'],
     hashed: ['id', 'repair_job_id', 'before_photo_id', 'after_photo_id', 'attempt_number', 'measured_distance_m',
       'before_accuracy_m', 'after_accuracy_m', 'heading_difference_degrees', 'gps_accuracy_pass', 'distance_pass',
-      'heading_pass', 'overall_status', 'failure_reasons', 'rules_version', 'thresholds', 'verified_at', 'verified_by']
+      'heading_pass', 'overall_status', 'failure_reasons', 'rules_version', 'thresholds', 'verified_at', 'verified_by'],
+    // Columns added later: part of the hash only when filled, so older rows keep their original hash.
+    hashedIfSet: ['match_score', 'score_details']
   },
   repair_reviews: {
     columns: ['id', 'repair_job_id', 'verification_id', 'after_photo_id', 'decision', 'reason', 'reviewer_id',
@@ -858,6 +919,10 @@ function withLock(fn) {
 function recordHash(table, obj) {
   var cols = SCHEMA[table].hashed;
   var parts = cols.map(function (c) { return c + '=' + normalizedCell(obj[c]); });
+  (SCHEMA[table].hashedIfSet || []).forEach(function (c) {
+    var v = normalizedCell(obj[c]);
+    if (v !== '') parts.push(c + '=' + v);
+  });
   return sha256Hex(table + '|' + parts.join('|'));
 }
 
@@ -1311,6 +1376,7 @@ function publicVerification(v, names) {
     gps_accuracy_pass: cellBool(v.gps_accuracy_pass), distance_pass: cellBool(v.distance_pass), heading_pass: cellBool(v.heading_pass),
     overall_status: v.overall_status, failure_reasons: parseJsonSafe(v.failure_reasons, []), rules_version: v.rules_version,
     thresholds: parseJsonSafe(v.thresholds, {}), verified_at: v.verified_at, verified_by: v.verified_by || null,
+    match_score: cellNumber(v.match_score), score_details: parseJsonSafe(v.score_details, null),
     record_intact: v.record_hash === recordHash('verification_results', v)
   };
 }
@@ -1584,8 +1650,17 @@ function readMeasurement(m) {
     headingUncertaintyDeg: optNumber(m, 'heading_uncertainty_deg'),
     capturedAt: optTimestamp(m, 'captured_at'),
     locationFixAt: optTimestamp(m, 'location_fix_at'),
-    headingMeasuredAt: optTimestamp(m, 'heading_measured_at')
+    headingMeasuredAt: optTimestamp(m, 'heading_measured_at'),
+    imageSimilarity: readSimilarity(m)
   };
+}
+
+/** Optional 0–100 view similarity measured on the device (After photo, rules v5+). */
+function readSimilarity(m) {
+  var v = optNumber(m, 'image_similarity');
+  if (v === null) return null;
+  if (v < 0 || v > 100) fail('VALIDATION_ERROR', 'measurement.image_similarity must be 0–100');
+  return v;
 }
 
 function measurementFromPhoto(row) {
@@ -1696,7 +1771,11 @@ function actionSubmitCapture(p, ctx) {
         fail('CAPTURE_REJECTED', 'Before capture does not meet the requirements.', { reasons: evaluation.reasons, rules_version: rules.version });
       }
     } else {
-      outcome = RRVerify.verifyCapturePair(measurementFromPhoto(before), measurement, rules);
+      // A low score may be sent for human review only after enough attempts, with a reason.
+      var attemptNo = (Number(job.after_attempts) || 0) + 1;
+      var manualReason = typeof p.manual_review_reason === 'string' ? p.manual_review_reason.trim().slice(0, 500) : '';
+      var allowManual = rules.scoring && attemptNo >= rules.scoring.manualReviewAfterAttempts;
+      outcome = RRVerify.verifyCapturePair(measurementFromPhoto(before), measurement, rules, { manualReviewReason: allowManual ? manualReason : null });
     }
 
     // --- Persist: Drive file, then rows, then job status ----------------------
@@ -1745,7 +1824,9 @@ function actionSubmitCapture(p, ctx) {
           gps_accuracy_pass: outcome.gpsAccuracyPass, distance_pass: outcome.distancePass, heading_pass: outcome.headingPass,
           overall_status: outcome.overallStatus, failure_reasons: JSON.stringify(outcome.reasons),
           rules_version: outcome.rulesVersion, thresholds: JSON.stringify(outcome.thresholds), verified_at: nowIso(),
-          verified_by: '' // system-generated check
+          verified_by: '', // system-generated check
+          match_score: outcome.matchScore ? outcome.matchScore.total : '',
+          score_details: outcome.matchScore ? JSON.stringify(outcome.matchScore) : ''
         };
         v.record_hash = recordHash('verification_results', v);
         storedVerification = Db.insert('verification_results', [v])[0];

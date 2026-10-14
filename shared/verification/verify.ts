@@ -36,7 +36,11 @@ export type ReasonCode =
   | 'HEADING_NOT_COMPUTABLE'
   | 'HEADING_DIFFERENCE_EXCEEDED'
   | 'CAPTURE_ORDER_INVALID'
-  | 'HEADING_SOURCE_MISMATCH';
+  | 'HEADING_SOURCE_MISMATCH'
+  | 'MATCH_SCORE_LOW'
+  | 'MATCH_SCORE_BORDERLINE'
+  | 'IMAGE_SIMILARITY_MISSING'
+  | 'MANUAL_REVIEW_REQUESTED';
 
 export interface VerificationReason {
   code: ReasonCode;
@@ -62,6 +66,22 @@ export interface CaptureMeasurement {
   locationFixAt?: string | number | null;
   /** Timestamp of the heading sample used (ISO string or epoch ms). */
   headingMeasuredAt?: string | number | null;
+  /** After only (v5+): similarity of the view to the Before photo, 0–100. */
+  imageSimilarity?: number | null;
+}
+
+export interface MatchScoreBreakdown {
+  /** 0–100 total. */
+  total: number;
+  image: number;
+  heading: number;
+  gps: number;
+  imageSimilarity: number | null;
+}
+
+export interface PairOptions {
+  /** Reason given by the inspector to send a low score for human review (server decides eligibility). */
+  manualReviewReason?: string | null;
 }
 
 export interface SingleCaptureEvaluation {
@@ -89,6 +109,34 @@ export interface VerificationOutcome {
   reasons: VerificationReason[];
   rulesVersion: string;
   thresholds: ReturnType<typeof thresholdsSnapshot>;
+  /** v5+: weighted match score; null for rules without scoring or when it cannot be computed. */
+  matchScore: MatchScoreBreakdown | null;
+}
+
+const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+const round1 = (x: number) => Math.round(x * 10) / 10;
+
+/**
+ * Weighted match score (v5+). Pure; used for the live meter in the browser
+ * and for the authoritative result on the server. Missing similarity counts
+ * as zero image points.
+ */
+export function computeMatchScore(
+  input: { distanceM: number | null; headingDiffDeg: number | null; imageSimilarity: number | null | undefined },
+  rules: VerificationRules,
+): MatchScoreBreakdown | null {
+  const s = rules.scoring;
+  if (!s || input.distanceM === null || input.headingDiffDeg === null) return null;
+  const sim = isFiniteNumber(input.imageSimilarity) ? Math.max(0, Math.min(100, input.imageSimilarity)) : null;
+  const imageShare = sim === null ? 0 : clamp01((sim - s.imageZero) / (s.imageFull - s.imageZero));
+  const headSpan = Math.max(rules.maxHeadingDifferenceDeg - s.headingFullDeg, 1e-9);
+  const headingShare = input.headingDiffDeg <= s.headingFullDeg ? 1 : clamp01(1 - (1 - s.headingAtLimit) * ((input.headingDiffDeg - s.headingFullDeg) / headSpan));
+  const gpsSpan = Math.max(rules.maxDistanceM - s.gpsFullM, 1e-9);
+  const gpsShare = input.distanceM <= s.gpsFullM ? 1 : clamp01(1 - (input.distanceM - s.gpsFullM) / gpsSpan);
+  const image = round1(imageShare * s.weights.image);
+  const heading = round1(headingShare * s.weights.heading);
+  const gps = round1(gpsShare * s.weights.gps);
+  return { total: Math.round(image + heading + gps), image, heading, gps, imageSimilarity: sim };
 }
 
 export function parseTimestampMs(value: unknown): number | null {
@@ -287,6 +335,7 @@ export function verifyCapturePair(
   before: CaptureMeasurement | null | undefined,
   after: CaptureMeasurement | null | undefined,
   rules: VerificationRules,
+  options: PairOptions = {},
 ): VerificationOutcome {
   const b = evaluateCapture(before, 'BEFORE', rules);
   const a = evaluateCapture(after, 'AFTER', rules);
@@ -344,8 +393,31 @@ export function verifyCapturePair(
   }
 
   const checks = { gpsAccuracyPass, distancePass, headingPass };
+  let overallStatus = deriveStatus(checks, reasons);
+  let matchScore: MatchScoreBreakdown | null = null;
+  const s = rules.scoring;
+  if (s) {
+    matchScore = computeMatchScore({ distanceM: measuredDistanceM, headingDiffDeg: headingDifferenceDeg, imageSimilarity: after?.imageSimilarity }, rules);
+    if (!isFiniteNumber(after?.imageSimilarity)) {
+      reasons.push(reason('IMAGE_SIMILARITY_MISSING', 'WARNING', 'Image similarity was not measured; image points are zero.'));
+    }
+    // Hard limits passed and data complete: the score decides.
+    if (overallStatus === 'PASS' && matchScore) {
+      if (matchScore.total < s.reviewScore) {
+        const manual = (options.manualReviewReason ?? '').trim();
+        if (manual.length >= 5) {
+          reasons.push(reason('MANUAL_REVIEW_REQUESTED', 'WARNING', `Score ${matchScore.total} is below ${s.reviewScore}; sent for human review: ${manual}`, { value: manual, threshold: s.reviewScore }));
+        } else {
+          overallStatus = 'FAIL';
+          reasons.push(reason('MATCH_SCORE_LOW', 'FAIL', `Match score ${matchScore.total} is below ${s.reviewScore}.`, { value: matchScore.total, threshold: s.reviewScore }));
+        }
+      } else if (matchScore.total < s.passScore) {
+        reasons.push(reason('MATCH_SCORE_BORDERLINE', 'WARNING', `Match score ${matchScore.total} is below ${s.passScore}; check the photos carefully.`, { value: matchScore.total, threshold: s.passScore }));
+      }
+    }
+  }
   return {
-    overallStatus: deriveStatus(checks, reasons),
+    overallStatus,
     ...checks,
     measuredDistanceM,
     headingDifferenceDeg,
@@ -354,6 +426,7 @@ export function verifyCapturePair(
     reasons,
     rulesVersion: rules.version,
     thresholds: thresholdsSnapshot(rules),
+    matchScore,
   };
 }
 

@@ -101,10 +101,12 @@ var SCHEMA = {
     columns: ['id', 'repair_job_id', 'before_photo_id', 'after_photo_id', 'attempt_number', 'measured_distance_m',
       'before_accuracy_m', 'after_accuracy_m', 'heading_difference_degrees', 'gps_accuracy_pass', 'distance_pass',
       'heading_pass', 'overall_status', 'failure_reasons', 'rules_version', 'thresholds', 'verified_at', 'verified_by',
-      'record_hash'],
+      'record_hash', 'match_score', 'score_details'],
     hashed: ['id', 'repair_job_id', 'before_photo_id', 'after_photo_id', 'attempt_number', 'measured_distance_m',
       'before_accuracy_m', 'after_accuracy_m', 'heading_difference_degrees', 'gps_accuracy_pass', 'distance_pass',
-      'heading_pass', 'overall_status', 'failure_reasons', 'rules_version', 'thresholds', 'verified_at', 'verified_by']
+      'heading_pass', 'overall_status', 'failure_reasons', 'rules_version', 'thresholds', 'verified_at', 'verified_by'],
+    // Columns added later: part of the hash only when filled, so older rows keep their original hash.
+    hashedIfSet: ['match_score', 'score_details']
   },
   repair_reviews: {
     columns: ['id', 'repair_job_id', 'verification_id', 'after_photo_id', 'decision', 'reason', 'reviewer_id',

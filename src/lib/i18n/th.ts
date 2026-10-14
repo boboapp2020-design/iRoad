@@ -43,7 +43,7 @@ export const th = {
     recordTampered: 'ตรวจพบว่าข้อมูลหลักฐานถูกแก้ไขนอกแอป',
   },
   reasons: {
-    EVIDENCE_MISSING: 'ไม่พบหลักฐาน{capture}', CAPTURE_TIME_MISSING: 'ไม่มีเวลาถ่ายภาพ{capture}',
+    MATCH_SCORE_LOW: 'คะแนนรวม {value} ต่ำกว่า {threshold} — ภาพไม่ตรงกับจุดเดิมพอ', MATCH_SCORE_BORDERLINE: 'คะแนนรวม {value} ต่ำกว่า {threshold} — ผู้ตรวจรับควรดูภาพเทียบให้ละเอียด', IMAGE_SIMILARITY_MISSING: 'วัดความเหมือนของภาพไม่ได้ (นับเป็น 0 คะแนน)', MANUAL_REVIEW_REQUESTED: 'คนถ่ายขอให้ผู้ตรวจรับตัดสินด้วยตา: {value}', EVIDENCE_MISSING: 'ไม่พบหลักฐาน{capture}', CAPTURE_TIME_MISSING: 'ไม่มีเวลาถ่ายภาพ{capture}',
     COORDINATES_MISSING: 'ไม่มีพิกัด{capture}', COORDINATES_INVALID: 'พิกัด{capture}ไม่ถูกต้อง',
     LOCATION_TIMESTAMP_MISSING: 'ไม่มีเวลาของพิกัด GPS{capture}', LOCATION_STALE: 'พิกัด GPS{capture}เก่าเกินไป',
     ACCURACY_MISSING: 'ไม่มีค่าความแม่นยำ GPS{capture}', ACCURACY_INVALID: 'ค่าความแม่นยำ GPS{capture}ไม่ถูกต้อง',
@@ -86,7 +86,7 @@ export const th = {
     deleteJob: 'ลบรายการซ่อม', deleteReason: 'เหตุผลในการลบ (อย่างน้อย 5 ตัวอักษร) — จะถูกบันทึกใน log', deletedBanner: 'รายการนี้ถูกลบโดย {by} เมื่อ {at}', deletedReason: 'เหตุผล: {r}', deletedKept: 'รูปและข้อมูลหลักฐานยังเก็บไว้เพื่อการตรวจสอบ', deleted: 'ลบรายการแล้ว',
   },
   capture: {
-    ghostOn: 'ภาพเดิม: เปิด', ghostOff: 'ภาพเดิม: ปิด', similarityLive: 'ภาพตรงกัน {v}%', ghostTip: 'จัดมุมกล้องให้ภาพสดทับภาพเดิมที่จางๆ ให้พอดี', openCamera: 'เปิดกล้อง', introLead: 'แอปจะขอใช้ 3 อย่างนี้ กด "อนุญาต" เมื่อมือถือถาม', beforeSavedNext: 'ขั้นต่อไป: ซ่อมให้เสร็จ แล้วกด "ซ่อมเสร็จแล้ว" ในหน้างาน', inRange: 'อยู่ในเกณฑ์', outOfRange: 'ยังไม่อยู่ในเกณฑ์', measuring: 'กำลังวัด...', cardDistance: 'ห่างจุดเดิม {v} ม.', cardDistanceWait: 'กำลังหาระยะ', cardHeading: 'ทิศ {v}°', cardHeadingDiff: 'ต่างจากเดิม {d}°', resultTitle: 'ผลการตรวจสอบ', result_PASS: 'ส่งให้ผู้ตรวจรับแล้ว', result_FAIL: 'ตำแหน่งหรือทิศไม่ตรงจุดเดิม ต้องถ่ายใหม่', result_INSUFFICIENT_DATA: 'ข้อมูลไม่พอให้ยืนยัน ต้องถ่ายใหม่', result_PENDING: 'รอผลจากเซิร์ฟเวอร์', beforeTitle: 'ถ่ายภาพก่อนซ่อม', afterTitle: 'ถ่ายภาพหลังซ่อม', requestPermissions: 'อนุญาตกล้อง ตำแหน่ง และเข็มทิศ',
+    stampBy: 'โดย', scoreEstimate: 'คะแนนรวม (ประมาณ)', scoreLive: 'คะแนน {v}/100', alignView: 'ถ่ายได้ แต่ภาพยังไม่ตรง (คะแนน {v}) — เล็งให้ภาพทับภาพเดิม', scoreLowRetake: 'คะแนนยังต่ำ ระบบน่าจะให้ถ่ายใหม่ (ถ้าถ่ายอีก {n} ครั้งยังไม่ผ่าน จะส่งให้ผู้ตรวจรับดูได้)', manualTitle: 'ถ่ายครั้งที่ {n} แล้วภาพยังไม่ตรง', manualText: 'ใส่เหตุผลเพื่อส่งให้ผู้ตรวจรับตัดสินด้วยตา (เช่น มีรถบัง ต้นไม้ถูกตัด ป้ายถูกรื้อ)', manualPlaceholder: 'เหตุผล (อย่างน้อย 5 ตัวอักษร)', ghostOn: 'ภาพเดิม: เปิด', ghostOff: 'ภาพเดิม: ปิด', similarityLive: 'ภาพตรงกัน {v}%', ghostTip: 'จัดมุมกล้องให้ภาพสดทับภาพเดิมที่จางๆ ให้พอดี', openCamera: 'เปิดกล้อง', introLead: 'แอปจะขอใช้ 3 อย่างนี้ กด "อนุญาต" เมื่อมือถือถาม', beforeSavedNext: 'ขั้นต่อไป: ซ่อมให้เสร็จ แล้วกด "ซ่อมเสร็จแล้ว" ในหน้างาน', inRange: 'อยู่ในเกณฑ์', outOfRange: 'ยังไม่อยู่ในเกณฑ์', measuring: 'กำลังวัด...', cardDistance: 'ห่างจุดเดิม {v} ม.', cardDistanceWait: 'กำลังหาระยะ', cardHeading: 'ทิศ {v}°', cardHeadingDiff: 'ต่างจากเดิม {d}°', resultTitle: 'ผลการตรวจสอบ', result_PASS: 'ส่งให้ผู้ตรวจรับแล้ว', result_FAIL: 'ตำแหน่งหรือทิศไม่ตรงจุดเดิม ต้องถ่ายใหม่', result_INSUFFICIENT_DATA: 'ข้อมูลไม่พอให้ยืนยัน ต้องถ่ายใหม่', result_PENDING: 'รอผลจากเซิร์ฟเวอร์', beforeTitle: 'ถ่ายภาพก่อนซ่อม', afterTitle: 'ถ่ายภาพหลังซ่อม', requestPermissions: 'อนุญาตกล้อง ตำแหน่ง และเข็มทิศ',
     permissionsIntro: 'แอปต้องใช้กล้องหลัง GPS ความแม่นยำสูง และเซ็นเซอร์ทิศทาง เพื่อบันทึกหลักฐานที่ตรวจสอบได้',
     criteria: 'เกณฑ์ก่อนถ่ายภาพ', critAccuracy: 'GPS accuracy ≤ {v} ม.', critDistance: 'ห่างจากจุดเดิม ≤ {v} ม.',
     critHeading: 'ทิศทางต่างจากเดิม ≤ {v}°', critFresh: 'ข้อมูลตำแหน่งใหม่ไม่เกิน {v} วินาที',
@@ -119,6 +119,7 @@ export const th = {
     headingNote: 'ทิศทางคำนวณจากแกนด้านหลังของอุปกรณ์ (ทิศที่กล้องหลังหันไป) เป็นค่าประมาณ',
     wait: 'ยังถ่ายไม่ได้ — ', tooOld: 'ภาพนี้ถ่ายนานเกินไป กรุณาถ่ายใหม่', pendingServer: 'รอผลตรวจสอบจากเซิร์ฟเวอร์',
   },
+  score: { title: 'คะแนนความตรงกับจุดเดิม', image: 'ภาพเหมือน', heading: 'ทิศทาง', gps: 'GPS', legend: 'ผ่าน ≥ {pass} · ให้ผู้ตรวจดู {review}–{pass} · ต่ำกว่า {review} ถ่ายใหม่', similarity: 'ความเหมือนของภาพจากมือถือ {v}%', recomputing: 'กำลังคำนวณซ้ำจากรูปจริง…', recomputed: 'คำนวณซ้ำจากรูปที่เก็บไว้ {v}%', mismatch: '(ไม่ตรงกับที่มือถือส่งมา โปรดตรวจ)' },
   navigate: {
     title: 'นำทางไปยังจุดเดิม', distance: '{v} ถึงจุดเดิม', openMaps: 'เปิดใน Google Maps', unknownDistance: 'ยังไม่ทราบตำแหน่งปัจจุบัน',
     note: 'การเปิดแอปนำทางไม่ได้หมายความว่าคุณถึงจุดเดิมแล้ว ระบบจะตรวจสอบตำแหน่งอีกครั้งตอนถ่ายภาพ',
