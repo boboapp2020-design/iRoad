@@ -3,7 +3,7 @@ name: Diagnose Apps Script backend
 # Calls the Apps Script web app exactly like the browser app does (GET health
 # check, POST text/plain JSON with an Origin header) and prints status codes,
 # redirects, CORS headers and the start of each body. No secrets involved.
-# run 4 (POST then GET on 302, like browsers)
+# run 5
 on:
   push:
     paths: ['.github/workflows/diagnose-backend.yml']
