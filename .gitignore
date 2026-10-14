@@ -1,0 +1,14 @@
+node_modules
+dist
+dev-dist
+coverage
+.env
+.env.*
+!.env.example
+*.local
+playwright-report
+test-results
+.tmp
+supabase/.temp
+supabase/.branches
+!apps-script/dist/

@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+/*
+ * Field-app palette from the client's mockup: cool white surfaces, one
+ * confident blue for the primary action, pastel status tiles, and signal
+ * green / red that only ever mean pass / fail.
+ */
+@theme {
+  --font-sans: "IBM Plex Sans Thai", "Noto Sans Thai", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* neutrals (cool slate) */
+  --color-asphalt-950: #0f1b2d;
+  --color-asphalt-900: #18263a;
+  --color-asphalt-800: #24344b;
+  --color-asphalt-700: #3b4b61;
+  --color-asphalt-500: #64748b;
+  --color-asphalt-300: #a8b3c2;
+  --color-asphalt-100: #e3e8ef;
+  --color-paper: #f4f7fb;
+  /* primary action */
+  --color-primary-50: #eaf1fd;
+  --color-primary-100: #d3e2fb;
+  --color-primary-500: #2f6fe4;
+  --color-primary-600: #1f5fd9;
+  --color-primary-700: #184bb0;
+  /* status tiles */
+  --color-sky-tile: #e6f0fd;
+  --color-sky-ink: #1f5fd9;
+  --color-coral-tile: #fde9e4;
+  --color-coral-ink: #d4472f;
+  --color-amber-tile: #fff3d6;
+  --color-amber-ink: #b7791f;
+  --color-mint-tile: #e3f6ea;
+  --color-mint-ink: #1f8a4c;
+  /* signals */
+  --color-go-50: #e7f6ed;
+  --color-go-600: #1f9d55;
+  --color-go-700: #17803f;
+  --color-stop-50: #fdecec;
+  --color-stop-600: #dc3a32;
+  --color-stop-700: #b32a24;
+  --color-caution-50: #fff6e0;
+  --color-caution-500: #f2b01e;
+  --color-caution-700: #8a5a00;
+}
+
+html, body, #root { height: 100%; }
+body {
+  @apply bg-paper text-asphalt-900 antialiased;
+  font-feature-settings: "tnum" 1; /* aligned digits for coordinates and distances */
+  font-size: 16px; /* readable outdoors; never below 16px to avoid iOS zoom on inputs */
+  -webkit-tap-highlight-color: transparent;
+}
+input, select, textarea, button { font: inherit; }
+.safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 0.5rem); }
+.safe-top { padding-top: max(env(safe-area-inset-top), 0rem); }
+.leaflet-container { font: inherit; z-index: 0; }
+
+:focus-visible { outline: 3px solid var(--color-primary-500); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; }
+  .print-break { break-inside: avoid; }
+}
